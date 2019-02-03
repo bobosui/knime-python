@@ -44,29 +44,31 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jul 4, 2017 (clemens): created
+ *   Jan 25, 2019 (marcel): created
  */
-package org.knime.python2;
+package org.knime.python2.config;
 
-import org.knime.python2.PythonPathEditor.PythonVersionId;
+import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
- * Manages the path to a python executable and notifies a {@link ExecutableObserver} if that path changes.
- *
- * @author Clemens von Schwerin, KNIME GmbH, Konstanz, Germany
+ * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
+ * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-@SuppressWarnings("javadoc")
-interface ExecutableObservable {
-    /**
-     * Set the observer for this observable.
-     *
-     * @param obs an {@link ExecutableObserver}
-     */
-    public void setExecutableObserver(ExecutableObserver obs);
+public final class SerializerConfig {
 
     /**
-     * Notify the observer about a change in the executable path additionally indicating which
-     * python version changed.
+     * Configuration key for the serializer.
      */
-    public void notifyExecutableChange(PythonVersionId pythonVersionId);
+    public static final String CFG_KEY_SERIALIZER = "serializerId";
+
+    /**
+     * Use Flatbuffers serialization by default.
+     */
+    public static final String DEFAULT_SERIALIZER = "org.knime.serialization.flatbuffers.column";
+
+    private final SettingsModelString m_serializer = new SettingsModelString(CFG_KEY_SERIALIZER, DEFAULT_SERIALIZER);
+
+    public SettingsModelString getSerializer() {
+        return m_serializer;
+    }
 }

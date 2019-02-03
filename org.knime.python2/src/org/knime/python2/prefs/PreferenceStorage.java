@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,32 +41,24 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * ------------------------------------------------------------------------
+ * ---------------------------------------------------------------------
+ *
+ * History
+ *   Jan 26, 2019 (marcel): created
  */
-
-package org.knime.python2;
+package org.knime.python2.prefs;
 
 /**
- * Observers multiple {@link DefaultPythonVersionOption}s. Only one of those may be selected at one time.
- *
- * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
- *
+ * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
+ * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
+interface PreferenceStorage {
 
-public interface DefaultPythonVersionObserver {
+    void writeBoolean(String key, boolean value);
 
-    /**
-     * Sends an update to every observed {@link DefaultPythonVersionOption} containing the currently selected option.
-     *
-     * @param option - the currently selected option
-     */
-    public void notifyChange(DefaultPythonVersionOption option);
+    boolean readBoolean(String key, boolean defaultValue);
 
-    /**
-     * Adds a {@link DefaultPythonVersionOption} to observe
-     *
-     * @param option - an {@link DefaultPythonVersionOption} to observe
-     */
-    public void addOption(DefaultPythonVersionOption option);
+    void writeString(String key, String value);
 
+    String readString(String key, String defaultValue);
 }

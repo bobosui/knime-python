@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,47 +41,36 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * ------------------------------------------------------------------------
+ * ---------------------------------------------------------------------
+ *
+ * History
+ *   Jan 25, 2019 (marcel): created
  */
+package org.knime.python2.prefs;
 
-package org.knime.python2;
+import org.knime.python2.config.SerializerConfig;
+import org.knime.python2.prefs.PreferencePersistor.AbstractPreferencePersistor;
 
 /**
- * An observable option for the default python version. Only one DefaultPythonVersionOption observed by a
- * {@link DefaultPythonVersionObserver} may be selected at a time.
- *
- * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
- *
+ * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
+ * @author Christian Dietz, KNIME GmbH, Konstanz, German
  */
-
-public interface DefaultPythonVersionOption {
-
-    /**
-     * @return true - the option is the currently selected one, false - otherwise
-     */
-
-    public boolean isSelected();
+final class SerializerPreferencePersistor extends AbstractPreferencePersistor<SerializerConfig> {
 
     /**
-     * Process an update from the observer.
-     *
-     * @param option - the currently selected option
+     * @param config The configuration to save or load.
      */
+    public SerializerPreferencePersistor(final SerializerConfig config) {
+        super(config);
+    }
 
-    public void updateDefaultPythonVersion(DefaultPythonVersionOption option);
+    @Override
+    public void saveSettingsTo(final PreferenceStorage storage) {
+        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getSerializer(), storage);
+    }
 
-    /**
-     * Set an observer for this option.
-     *
-     * @param observer - a {@link DefaultPythonVersionObserver}
-     */
-
-    public void setObserver(DefaultPythonVersionObserver observer);
-
-    /**
-     * Notifies the observer about a state change meaning that this option was selected.
-     */
-
-    public void notifyChange();
-
+    @Override
+    public void loadSettingsFrom(final PreferenceStorage storage) {
+        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getSerializer(), storage);
+    }
 }

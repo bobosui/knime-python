@@ -55,11 +55,11 @@ import java.util.Set;
 
 import org.knime.python2.Activator;
 import org.knime.python2.PythonModuleSpec;
-import org.knime.python2.PythonPreferencePage;
 import org.knime.python2.extensions.serializationlibrary.SentinelOption;
 import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtensions;
 import org.knime.python2.extensions.serializationlibrary.SerializationOptions;
 import org.knime.python2.extensions.serializationlibrary.interfaces.SerializationLibraryFactory;
+import org.knime.python2.prefs.PythonPreferences;
 
 /**
  * Options for the PythonKernel. Includes {@link SerializationOptions} and the python version that should be used.
@@ -86,7 +86,6 @@ public class PythonKernelOptions {
 
     private String m_externalCustomPath;
 
-
     /**
      * The default number of rows to transfer per chunk.
      */
@@ -95,14 +94,13 @@ public class PythonKernelOptions {
     private int m_chunkSize = DEFAULT_CHUNK_SIZE;
 
     /**
-     * Default constructor. Consults the {@link PythonPreferencePage} for the default python version to use.
+     * Default constructor. Consults the {@link PythonPreferences preferences} for the default Python version to use.
      */
     public PythonKernelOptions() {
         m_usePython3 = getPreferencePythonVersion();
         m_kernelScriptPath = Activator.getFile(Activator.PLUGIN_ID, "py/PythonKernelLauncher.py").getAbsolutePath();
-        m_python2Command = Activator.getPython2Command();
-        m_python3Command = Activator.getPython3Command();
-
+        m_python2Command = PythonPreferences.getPython2CommandPreference();
+        m_python3Command = PythonPreferences.getPython3CommandPreference();
     }
 
     /**
@@ -305,14 +303,14 @@ public class PythonKernelOptions {
      * @return the configured serializer id
      */
     public String getSerializerId() {
-        return m_flowVariableOptions.getSerializerId().orElse(PythonPreferencePage.getSerializerId());
+        return m_flowVariableOptions.getSerializerId().orElse(PythonPreferences.getSerializerPreference());
     }
 
     /**
      * @return the configured python2command
      */
     public String getPython2Command() {
-        return m_python2Command == null || m_python2Command.equals("") ? Activator.getPython2Command()
+        return m_python2Command == null || m_python2Command.equals("") ? PythonPreferences.getPython2CommandPreference()
             : m_python2Command;
     }
 
@@ -320,7 +318,7 @@ public class PythonKernelOptions {
      * @return the configured python3command
      */
     public String getPython3Command() {
-        return m_python3Command == null || m_python3Command.equals("") ? Activator.getPython3Command()
+        return m_python3Command == null || m_python3Command.equals("") ? PythonPreferences.getPython3CommandPreference()
             : m_python3Command;
     }
 
@@ -328,7 +326,7 @@ public class PythonKernelOptions {
      * @return the configured python2command
      */
     public String getPython2CommandRaw() {
-        return m_python2Command == null || m_python2Command.equals("") ? Activator.getPython2Command()
+        return m_python2Command == null || m_python2Command.equals("") ? PythonPreferences.getPython2CommandPreference()
             : m_python2Command;
     }
 
@@ -336,7 +334,7 @@ public class PythonKernelOptions {
      * @return the configured python3command.
      */
     public String getPython3CommandRaw() {
-        return m_python3Command == null || m_python3Command.equals("") ? Activator.getPython3Command()
+        return m_python3Command == null || m_python3Command.equals("") ? PythonPreferences.getPython3CommandPreference()
             : m_python3Command;
     }
 
@@ -376,7 +374,7 @@ public class PythonKernelOptions {
      * @return the default python version
      */
     public PythonVersionOption getPreferencePythonVersion() {
-        final String defaultPythonVersion = PythonPreferencePage.getDefaultPythonOption();
+        final String defaultPythonVersion = PythonPreferences.getPythonVersionPreference();
         if (defaultPythonVersion.contentEquals("python3")) {
             return PythonVersionOption.PYTHON3;
         } else if (defaultPythonVersion.contentEquals("python2")) {
@@ -432,7 +430,7 @@ public class PythonKernelOptions {
     /**
      * @param externalCustomPath the externalCustomPath to set
      */
-    public void setExternalCustomPath(String externalCustomPath) {
+    public void setExternalCustomPath(final String externalCustomPath) {
         m_externalCustomPath = externalCustomPath;
     }
 
