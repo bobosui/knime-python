@@ -1,0 +1,24 @@
+name: py35_knime
+channels:
+- anaconda
+- conda-forge
+- defaults
+dependencies:
+- cairo=1.14.6=4
+- keras=2.1.6
+- tensorflow=1.8.0
+- pandas=0.20.3
+- jedi=0.10.2
+- matplotlib=2.0.2
+- python-dateutil=2.6.1
+- pillow=4.2.1
+- numpy=1.13.3
+- jpype1=0.6.2=np113py35_0
+- h5py=2.7.0
+- pyarrow=0.10.0
+- protobuf=3.5.2
+- werkzeug=0.11.10
+- IPython=6.5.0
+- nbformat=4.4.0
+- scipy=1.1.0=py35h1a1e112_1
+

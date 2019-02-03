@@ -1,0 +1,19 @@
+name: py27_knime
+channels:
+- anaconda
+- conda-forge
+- defaults
+dependencies:
+- cairo=1.14.6=4
+- pandas=0.20.3=py27_1
+- jedi=0.10.2=py27_0
+- matplotlib=2.0.2=np113py27_0
+- python-dateutil=2.6.1=py27_0
+- pillow=4.2.1=py27_0
+- numpy=1.13.1=py27_blas_openblas_200
+- jpype1=0.6.2=np113py27_0
+- pyarrow=0.7.1=py27_1
+- protobuf=3.2.0
+- IPython=5.8.0
+- nbformat=4.4.0
+
