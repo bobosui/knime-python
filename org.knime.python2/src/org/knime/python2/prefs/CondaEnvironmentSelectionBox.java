@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,49 +41,61 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * ------------------------------------------------------------------------
+ * ---------------------------------------------------------------------
+ *
+ * History
+ *   Feb 10, 2019 (marcel): created
  */
-
 package org.knime.python2.prefs;
 
-import org.eclipse.jface.preference.FileFieldEditor;
+import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.List;
+
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.Activator;
+import org.knime.python2.Conda;
 
 /**
- * Dialog component that allows to select the path to the executable for a specific Python version.
- *
- * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class PythonPathEditor extends Composite {
+final class CondaEnvironmentSelectionBox extends Composite {
 
-    private final SettingsModelString m_pathConfig;
+    private static final String NO_ENVIRONMENT_PLACEHOLDER = "<no environment>";
+
+    private final SettingsModelString m_environmentConfig;
 
     private final Label m_header;
+
+    private Combo m_environmentSelection;
 
     private final Label m_info;
 
     private final Label m_error;
 
     /**
-     * @param pathConfig The settings model for the path.
+     * @param environmentConfig The settings model for the conda environment name.
+     * @param pathToCondaExecutable The settings model that contains the path to the conda executable.
+     * @param selectionBoxLabel The description text for the environment selection box.
      * @param headerLabel The text of the header for the path editor's enclosing group box.
-     * @param editorLabel The description text for the path editor.
      * @param parent The parent widget.
      */
-    public PythonPathEditor(final SettingsModelString pathConfig, final String headerLabel, final String editorLabel,
+    public CondaEnvironmentSelectionBox(final SettingsModelString environmentConfig,
+        final SettingsModelString pathToCondaExecutable, final String headerLabel, final String selectionBoxLabel,
         final Composite parent) {
         super(parent, SWT.NONE);
-        m_pathConfig = pathConfig;
+        m_environmentConfig = environmentConfig;
 
         final GridLayout gridLayout = new GridLayout();
         gridLayout.numColumns = 3;
@@ -98,17 +111,11 @@ final class PythonPathEditor extends Composite {
         gridData.horizontalSpan = 3;
         m_header.setLayoutData(gridData);
 
-        // Path editor:
-        final FileFieldEditor pathEditor = new FileFieldEditor(Activator.PLUGIN_ID, editorLabel, this);
-        pathEditor.setStringValue(pathConfig.getStringValue());
-        pathConfig.addChangeListener(e -> pathEditor.setStringValue(pathConfig.getStringValue()));
-        pathEditor.getTextControl(this).addListener(SWT.Traverse, event -> {
-            pathConfig.setStringValue(pathEditor.getStringValue());
-            if (event.detail == SWT.TRAVERSE_RETURN) {
-                event.doit = false;
-            }
-        });
-        pathEditor.setPropertyChangeListener(event -> pathConfig.setStringValue(pathEditor.getStringValue()));
+        // Environment selection:
+        final Label environmentSelectionLabel = new Label(this, SWT.NONE);
+        environmentSelectionLabel.setText(selectionBoxLabel);
+        m_environmentSelection = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
+        clearSelectionToPlaceholder();
 
         // Info label:
         m_info = new Label(this, SWT.NONE);
@@ -125,13 +132,33 @@ final class PythonPathEditor extends Composite {
         gridData = new GridData();
         gridData.horizontalSpan = 2;
         m_error.setLayoutData(gridData);
+
+        // Populate and hook environment selection:
+        refreshAvailableEnvironments(pathToCondaExecutable.getStringValue());
+
+        pathToCondaExecutable
+            .addChangeListener(e -> refreshAvailableEnvironments(pathToCondaExecutable.getStringValue()));
+
+        environmentConfig.addChangeListener(e -> setSelectedEnvironment(environmentConfig.getStringValue()));
+        m_environmentSelection.addSelectionListener(new SelectionListener() {
+
+            @Override
+            public void widgetSelected(final SelectionEvent e) {
+                environmentConfig.setStringValue(getSelectedEnvironment());
+            }
+
+            @Override
+            public void widgetDefaultSelected(final SelectionEvent e) {
+                widgetSelected(e);
+            }
+        });
     }
 
     /**
-     * @return The config that holds the path displayed and manipulated by this editor.
+     * @return The config that holds the environment name displayed and manipulated by this editor.
      */
-    public SettingsModelString getPathConfig() {
-        return m_pathConfig;
+    public SettingsModelString getEnvironmentConfig() {
+        return m_environmentConfig;
     }
 
     public void setDisplayAsDefault(final boolean setAsDefault) {
@@ -152,7 +179,7 @@ final class PythonPathEditor extends Composite {
     }
 
     /**
-     * Sets the info message of this path editor.
+     * Sets the info message of this environment selection.
      *
      * @param info The info message.
      */
@@ -166,7 +193,7 @@ final class PythonPathEditor extends Composite {
     }
 
     /**
-     * Sets the error message of this path editor.
+     * Sets the error message of this environment selection.
      *
      * @param error The error message.
      */
@@ -177,5 +204,57 @@ final class PythonPathEditor extends Composite {
             m_error.setText("");
         }
         layout();
+    }
+
+    private void refreshAvailableEnvironments(final String pathToCondaExecutable) {
+        try {
+            final String previousSelection = getSelectedEnvironment();
+            final Conda conda = new Conda(pathToCondaExecutable);
+            List<String> environments = conda.getEnvironments();
+            if (environments.isEmpty()) {
+                environments = Arrays.asList(NO_ENVIRONMENT_PLACEHOLDER);
+            }
+            m_environmentSelection.setItems(environments.toArray(new String[0]));
+            setSelectedEnvironment(previousSelection);
+        } catch (Exception ex) {
+            clearSelectionToPlaceholder();
+            setInfo(null);
+            final String errorMessage;
+            if (ex instanceof FileNotFoundException) {
+                // Non-existent executable path will be reported elsewhere, so we stay silent here.
+                errorMessage = null;
+            } else {
+                errorMessage = "Failed to list available conda environments. See log for details.";
+                NodeLogger.getLogger(CondaEnvironmentSelectionBox.class).error(ex);
+            }
+            setError(errorMessage);
+        }
+    }
+
+    private String getSelectedEnvironment() {
+        return m_environmentSelection.getItem(m_environmentSelection.getSelectionIndex());
+    }
+
+    private void setSelectedEnvironment(final String environmentName) {
+        final int numEnvironments = m_environmentSelection.getItemCount();
+        int indexToSelect = -1;
+        for (int i = 0; i < numEnvironments; i++) {
+            if (m_environmentSelection.getItem(i).equals(environmentName)) {
+                indexToSelect = i;
+                break;
+            }
+        }
+        if (indexToSelect == -1) {
+            if (numEnvironments == 0) {
+                m_environmentSelection.setItems(NO_ENVIRONMENT_PLACEHOLDER);
+            }
+            indexToSelect = 0;
+        }
+        m_environmentSelection.select(indexToSelect);
+    }
+
+    private void clearSelectionToPlaceholder() {
+        m_environmentSelection.setItems(NO_ENVIRONMENT_PLACEHOLDER);
+        setSelectedEnvironment(NO_ENVIRONMENT_PLACEHOLDER);
     }
 }

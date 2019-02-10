@@ -46,26 +46,24 @@
  * History
  *   Jan 25, 2019 (marcel): created
  */
-package org.knime.python2.prefs;
+package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.config.ManualEnvironmentConfig;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractManualEnvironmentPanel<P> {
+public abstract class AbstractManualEnvironmentPanel<W> extends AbstractPythonConfigPanel<ManualEnvironmentConfig, W> {
 
-    private final ManualEnvironmentConfig m_config;
-
-    public AbstractManualEnvironmentPanel(final ManualEnvironmentConfig config, final P parent) {
-        m_config = config;
-        createPython2PathWidget(m_config.getPython2Path(), parent);
-        createPython3PathWidget(m_config.getPython3Path(), parent);
+    public AbstractManualEnvironmentPanel(final ManualEnvironmentConfig config, final W parent) {
+        super(config, parent);
+        final W panel = getPanel();
+        createPython2PathWidget(config.getPython2Path(), panel);
+        createPython3PathWidget(config.getPython3Path(), panel);
     }
 
-    protected abstract void createPython2PathWidget(SettingsModelString python2Path, P parent);
+    protected abstract void createPython2PathWidget(SettingsModelString python2Path, W panel);
 
-    protected abstract void createPython3PathWidget(SettingsModelString python2Path, P parent);
+    protected abstract void createPython3PathWidget(SettingsModelString python2Path, W panel);
 }

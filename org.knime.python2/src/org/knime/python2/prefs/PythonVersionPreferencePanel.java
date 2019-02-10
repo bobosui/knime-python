@@ -52,11 +52,14 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Group;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.PythonVersion;
+import org.knime.python2.config.AbstractPythonVersionPanel;
 import org.knime.python2.config.PythonVersionConfig;
 
 /**
@@ -70,29 +73,23 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
     }
 
     @Override
-    protected void createPythonVersionWidget(final SettingsModelString versionConfig, final Composite parent) {
-        final PythonVersionSelectionRadioGroup versionSelection =
-            new PythonVersionSelectionRadioGroup(versionConfig, parent);
-        versionSelection.setLayoutData(createVersionSelectionLayoutData());
+    protected Composite createPanel(final Composite parent) {
+        final Composite panel = new Composite(parent, SWT.NONE);
+        panel.setLayout(new GridLayout());
+        return panel;
     }
 
-    private static GridData createVersionSelectionLayoutData() {
+    @Override
+    protected void createPythonVersionWidget(final SettingsModelString versionConfig, final Composite panel) {
+        final PythonVersionSelectionRadioGroup versionSelection =
+            new PythonVersionSelectionRadioGroup(versionConfig, panel);
         final GridData gridData = new GridData();
-        gridData.horizontalSpan = 2;
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
-        return gridData;
+        versionSelection.setLayoutData(gridData);
     }
 
     private static final class PythonVersionSelectionRadioGroup extends Composite {
-
-        private static final String PYTHON2_ID = "python2";
-
-        private static final String PYTHON3_ID = "python3";
-
-        private static final String PYTHON2_LABEL = "Python 2";
-
-        private static final String PYTHON3_LABEL = "Python 3";
 
         private final Button m_python2RadioButton;
 
@@ -103,9 +100,9 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
             final Group radioButtonGroup = new Group(this, SWT.NONE);
             radioButtonGroup.setText("Python version to use by default");
             m_python2RadioButton = new Button(radioButtonGroup, SWT.RADIO);
-            m_python2RadioButton.setText(PYTHON2_LABEL);
+            m_python2RadioButton.setText(PythonVersion.PYTHON2.getName());
             m_python3RadioButton = new Button(radioButtonGroup, SWT.RADIO);
-            m_python3RadioButton.setText(PYTHON3_LABEL);
+            m_python3RadioButton.setText(PythonVersion.PYTHON3.getName());
             final RowLayout rowLayout = new RowLayout(SWT.HORIZONTAL);
             rowLayout.pack = false;
             rowLayout.justify = true;
@@ -122,15 +119,15 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
         private void setSelectedPythonVersion(final String pythonVersion) {
             final Button pythonRadioButtonToSelect;
             final Button pythonRadioButtonToUnselect;
-            if (PYTHON2_ID.equals(pythonVersion)) {
+            if (PythonVersion.PYTHON2.getId().equals(pythonVersion)) {
                 pythonRadioButtonToSelect = m_python2RadioButton;
                 pythonRadioButtonToUnselect = m_python3RadioButton;
-            } else if (PYTHON3_ID.equals(pythonVersion)) {
+            } else if (PythonVersion.PYTHON3.getId().equals(pythonVersion)) {
                 pythonRadioButtonToSelect = m_python3RadioButton;
                 pythonRadioButtonToUnselect = m_python2RadioButton;
             } else {
-                throw new IllegalStateException("Selected default Python version is neither " + PYTHON2_LABEL + " nor "
-                    + PYTHON3_LABEL + ". This is an implementation error.");
+                throw new IllegalStateException("Selected default Python version is neither Python 2 nor Python 3. "
+                    + "This is an implementation error.");
             }
             if (!pythonRadioButtonToSelect.getSelection()) {
                 pythonRadioButtonToSelect.setSelection(true);
@@ -148,13 +145,13 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
                     final Button button = (Button)e.widget;
                     if (button.getSelection()) {
                         final String selectedPythonLabel = button.getText();
-                        if (PYTHON2_LABEL.equals(selectedPythonLabel)) {
-                            versionConfig.setStringValue(PYTHON2_ID);
-                        } else if (PYTHON3_LABEL.equals(selectedPythonLabel)) {
-                            versionConfig.setStringValue(PYTHON3_ID);
+                        if (PythonVersion.PYTHON2.getName().equals(selectedPythonLabel)) {
+                            versionConfig.setStringValue(PythonVersion.PYTHON2.getId());
+                        } else if (PythonVersion.PYTHON3.getName().equals(selectedPythonLabel)) {
+                            versionConfig.setStringValue(PythonVersion.PYTHON3.getId());
                         } else {
-                            throw new IllegalStateException("Selected default Python version is neither "
-                                + PYTHON2_LABEL + " nor " + PYTHON3_LABEL + ". This is an implementation error.");
+                            throw new IllegalStateException("Selected default Python version is neither Python 2 nor "
+                                + " Python 3. This is an implementation error.");
                         }
                     }
                 }

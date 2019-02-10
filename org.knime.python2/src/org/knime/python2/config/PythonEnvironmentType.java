@@ -44,68 +44,45 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 24, 2019 (marcel): created
+ *   Feb 11, 2019 (marcel): created
  */
-package org.knime.python2.prefs;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Composite;
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.PythonVersion;
-import org.knime.python2.config.AbstractManualEnvironmentPanel;
-import org.knime.python2.config.ManualEnvironmentConfig;
+package org.knime.python2.config;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class ManualEnvironmentPreferencePanel extends AbstractManualEnvironmentPanel<Composite> {
+public enum PythonEnvironmentType {
 
-    private PythonPathEditor m_pythonPath2Editor;
+        /**
+         * (Possibly automatic) conda environment configuration.
+         */
+        CONDA("conda", "Conda"),
+        /**
+         * Manual environment configuration.
+         */
+        MANUAL("manual", "Manual");
 
-    private PythonPathEditor m_pythonPath3Editor;
+    private final String m_id;
 
-    public ManualEnvironmentPreferencePanel(final ManualEnvironmentConfig config, final Composite parent) {
-        super(config, parent);
+    private final String m_name;
+
+    private PythonEnvironmentType(final String id, final String name) {
+        m_id = id;
+        m_name = name;
     }
 
-    public PythonPathEditor getPython2PathEditor() {
-        return m_pythonPath2Editor;
+    /**
+     * @return The id of this environment type. Suitable for serialization etc.
+     */
+    public String getId() {
+        return m_id;
     }
 
-    public PythonPathEditor getPython3PathEditor() {
-        return m_pythonPath3Editor;
-    }
-
-    @Override
-    protected Composite createPanel(final Composite parent) {
-        final Composite panel = new Composite(parent, SWT.NONE);
-        panel.setLayout(new GridLayout());
-        return panel;
-    }
-
-    @Override
-    protected void createPython2PathWidget(final SettingsModelString python2Path, final Composite panel) {
-        final String python2Name = PythonVersion.PYTHON2.getName();
-        m_pythonPath2Editor =
-            new PythonPathEditor(python2Path, python2Name, "Path to the " + python2Name + " start script", panel);
-        m_pythonPath2Editor.setLayoutData(createPathEditorLayoutData());
-    }
-
-    @Override
-    protected void createPython3PathWidget(final SettingsModelString python3Path, final Composite panel) {
-        final String python3Name = PythonVersion.PYTHON3.getName();
-        m_pythonPath3Editor =
-            new PythonPathEditor(python3Path, python3Name, "Path to the " + python3Name + " start script", panel);
-        m_pythonPath3Editor.setLayoutData(createPathEditorLayoutData());
-    }
-
-    private static GridData createPathEditorLayoutData() {
-        final GridData gridData = new GridData();
-        gridData.grabExcessHorizontalSpace = true;
-        gridData.horizontalAlignment = SWT.FILL;
-        return gridData;
+    /**
+     * @return The name of this environment type. Suitable for use in a user interface.
+     */
+    public String getName() {
+        return m_name;
     }
 }

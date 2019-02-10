@@ -49,6 +49,7 @@
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.PythonVersion;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
@@ -64,7 +65,7 @@ public final class PythonVersionConfig {
     /**
      * The initial state of the default Python version to use.
      */
-    public static final String DEFAULT_PYTHON_VERSION = "python3";
+    public static final String DEFAULT_PYTHON_VERSION = PythonVersion.PYTHON3.getId();
 
     private final SettingsModelString m_pythonVersion =
         new SettingsModelString(CFG_KEY_PYTHON_VERSION, DEFAULT_PYTHON_VERSION);

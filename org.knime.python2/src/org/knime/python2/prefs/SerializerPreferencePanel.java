@@ -57,10 +57,12 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.config.AbstractSerializerPanel;
 import org.knime.python2.config.SerializerConfig;
 import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtension;
 import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtensions;
@@ -76,20 +78,19 @@ final class SerializerPreferencePanel extends AbstractSerializerPanel<Composite>
     }
 
     @Override
-    protected void createSerializerWidget(final SettingsModelString config, final Composite parent) {
-        final GridData gridData = new GridData();
-        gridData.horizontalSpan = 2;
-        gridData.grabExcessHorizontalSpace = true;
-        final SerializerSelectionBox serializerSelection = new SerializerSelectionBox(config, parent);
-        serializerSelection.setLayoutData(createSerializerSelectionLayoutData());
+    protected Composite createPanel(final Composite parent) {
+        final Composite panel = new Composite(parent, SWT.NONE);
+        panel.setLayout(new GridLayout());
+        return panel;
     }
 
-    private static GridData createSerializerSelectionLayoutData() {
+    @Override
+    protected void createSerializerWidget(final SettingsModelString config, final Composite panel) {
+        final SerializerSelectionBox serializerSelection = new SerializerSelectionBox(config, panel);
         final GridData gridData = new GridData();
-        gridData.horizontalSpan = 2;
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
-        return gridData;
+        serializerSelection.setLayoutData(gridData);
     }
 
     private static final class SerializerSelectionBox extends Composite {
@@ -104,14 +105,17 @@ final class SerializerPreferencePanel extends AbstractSerializerPanel<Composite>
          */
         public SerializerSelectionBox(final SettingsModelString serializerConfig, final Composite parent) {
             super(parent, SWT.NONE);
+            final GridLayout gridLayout = new GridLayout();
+            gridLayout.numColumns = 2;
+            setLayout(gridLayout);
 
             // Label:
-            final Label serializerLabel = new Label(parent, SWT.NONE);
+            final Label serializerLabel = new Label(this, SWT.NONE);
             serializerLabel.setText("Serialization library");
             serializerLabel.setLayoutData(new GridData());
 
             // Serializer selection:
-            m_serializerSelection = new Combo(parent, SWT.DROP_DOWN | SWT.READ_ONLY);
+            m_serializerSelection = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
             final String[] serializerNamesSorted = setupSerializers();
             m_serializerSelection.setItems(serializerNamesSorted);
             setSelectedSerializer(serializerConfig.getStringValue());
@@ -128,6 +132,7 @@ final class SerializerPreferencePanel extends AbstractSerializerPanel<Composite>
                     widgetSelected(e);
                 }
             });
+            m_serializerSelection.setLayoutData(new GridData());
         }
 
         private String[] setupSerializers() {
@@ -149,6 +154,10 @@ final class SerializerPreferencePanel extends AbstractSerializerPanel<Composite>
             return serializerNamesSorted;
         }
 
+        private String getSelectedSerializer() {
+            return m_serializerIdsSortedByName.get(m_serializerSelection.getSelectionIndex());
+        }
+
         private void setSelectedSerializer(final String serializerId) {
             final int selectionIndex = m_serializerIdsSortedByName.indexOf(serializerId);
             if (selectionIndex == -1) {
@@ -156,10 +165,6 @@ final class SerializerPreferencePanel extends AbstractSerializerPanel<Composite>
                     + "' is not available. Are you missing a KNIME extension?");
             }
             m_serializerSelection.select(selectionIndex);
-        }
-
-        private String getSelectedSerializer() {
-            return m_serializerIdsSortedByName.get(m_serializerSelection.getSelectionIndex());
         }
     }
 }

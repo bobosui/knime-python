@@ -44,25 +44,32 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 25, 2019 (marcel): created
+ *   Feb 11, 2019 (marcel): created
  */
-package org.knime.python2.prefs;
-
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.config.PythonVersionConfig;
+package org.knime.python2.config;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractPythonVersionPanel<W> {
+public abstract class AbstractPythonConfigPanel<C, W> {
 
-    private final PythonVersionConfig m_config;
+    private final C m_config;
 
-    public AbstractPythonVersionPanel(final PythonVersionConfig config, final W parent) {
+    private final W m_panel;
+
+    public AbstractPythonConfigPanel(final C config, final W parent) {
         m_config = config;
-        createPythonVersionWidget(config.getPythonVersion(), parent);
+        m_panel = createPanel(parent);
     }
 
-    protected abstract void createPythonVersionWidget(final SettingsModelString versionConfig, final W parent);
+    public C getConfig() {
+        return m_config;
+    }
+
+    public W getPanel() {
+        return m_panel;
+    }
+
+    protected abstract W createPanel(W parent);
 }

@@ -44,25 +44,32 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 25, 2019 (marcel): created
+ *   Feb 11, 2019 (marcel): created
  */
-package org.knime.python2.prefs;
+package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.config.SerializerConfig;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractSerializerPanel<W> {
+public final class EnvironmentTypeConfig {
 
-    private final SerializerConfig m_config;
+    /**
+     * Configuration key for the selection of conda v. manual environment selection.
+     */
+    public static final String CFG_KEY_ENVIRONMENT_TYPE = "environmentType";
 
-    public AbstractSerializerPanel(final SerializerConfig config, final W parent) {
-        m_config = config;
-        createSerializerWidget(m_config.getSerializer(), parent);
+    /***
+     * The default selection.
+     */
+    public static final String DEFAULT_ENVIRONMENT_TYPE = PythonEnvironmentType.CONDA.getId();
+
+    private final SettingsModelString m_environmentType =
+        new SettingsModelString(CFG_KEY_ENVIRONMENT_TYPE, DEFAULT_ENVIRONMENT_TYPE);
+
+    public SettingsModelString getEnvironmentType() {
+        return m_environmentType;
     }
-
-    protected abstract void createSerializerWidget(SettingsModelString serializerConfig, W parent);
 }

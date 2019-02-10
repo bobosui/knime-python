@@ -103,6 +103,7 @@ public final class Conda {
     public Conda(String pathToExecutable) throws FileNotFoundException, IOException {
         final Path pathObjectToExecutable = Paths.get(pathToExecutable);
         final File executableFile;
+        // TODO: Not only check file system but also PATH.
         try {
             if (Files.isSymbolicLink(pathObjectToExecutable)) {
                 pathToExecutable = Files.readSymbolicLink(pathObjectToExecutable).toString();

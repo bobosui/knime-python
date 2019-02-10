@@ -56,6 +56,7 @@ import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
@@ -71,6 +72,9 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.knime.core.node.NodeLogger;
 import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
+import org.knime.python2.PythonVersion;
+import org.knime.python2.config.CondaEnvironmentConfig;
+import org.knime.python2.config.EnvironmentTypeConfig;
 import org.knime.python2.config.ManualEnvironmentConfig;
 import org.knime.python2.config.PythonEnvironmentConfigObserver;
 import org.knime.python2.config.PythonEnvironmentConfigObserver.PythonEnvironmentConfigTestStatusListener;
@@ -84,7 +88,7 @@ import org.knime.python2.config.SerializerConfig;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public class PythonPreferencePage extends PreferencePage implements IWorkbenchPreferencePage {
+public final class PythonPreferencePage extends PreferencePage implements IWorkbenchPreferencePage {
 
     private Display m_parentDisplay;
 
@@ -106,7 +110,7 @@ public class PythonPreferencePage extends PreferencePage implements IWorkbenchPr
         createPageBody(parent);
         createInfoHeader(parent);
 
-        m_preferencePersistors = new ArrayList<>(3);
+        m_preferencePersistors = new ArrayList<>(4);
 
         // Python version selection:
 
@@ -115,12 +119,31 @@ public class PythonPreferencePage extends PreferencePage implements IWorkbenchPr
         new PythonVersionPreferencePanel(pythonVersionConfig, m_container);
         m_preferencePersistors.add(new PythonVersionPreferencePersistor(pythonVersionConfig));
 
+        // Environment configuration:
+
+        final EnvironmentTypeConfig environmentConfig = new EnvironmentTypeConfig();
+
+        final Composite environmentConfigurationPanel = new Composite(m_container, SWT.NONE);
+        environmentConfigurationPanel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        final StackLayout environmentConfigurationLayout = new StackLayout();
+        environmentConfigurationPanel.setLayout(environmentConfigurationLayout);
+
         // Manual environment configuration:
 
         final ManualEnvironmentConfig manualEnvironmentConfig = new ManualEnvironmentConfig();
         final ManualEnvironmentPreferencePanel manualEnvironmentPanel =
-            new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, m_container);
+            new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, environmentConfigurationPanel);
         m_preferencePersistors.add(new ManualEnvironmentPreferencePersistor(manualEnvironmentConfig));
+
+        // Conda environment configuration:
+
+        final CondaEnvironmentConfig condaEnvironmentConfig = new CondaEnvironmentConfig();
+        final CondaEnvironmentPreferencePanel condaEnvironmentPreferencePanel =
+            new CondaEnvironmentPreferencePanel(condaEnvironmentConfig, environmentConfigurationPanel);
+        m_preferencePersistors.add(new CondaEnvironmentPreferencePersistor(condaEnvironmentConfig));
+
+        environmentConfigurationLayout.topControl = condaEnvironmentPreferencePanel.getPanel();
+        environmentConfigurationPanel.layout();
 
         // Serializer selection:
 
@@ -183,18 +206,14 @@ public class PythonPreferencePage extends PreferencePage implements IWorkbenchPr
         m_parentDisplay = parent.getDisplay();
         m_containerScrolledView = new ScrolledComposite(parent, SWT.H_SCROLL | SWT.V_SCROLL);
         m_container = new Composite(m_containerScrolledView, SWT.NONE);
-        final GridLayout gridLayout = new GridLayout();
-        gridLayout.numColumns = 2;
-        m_container.setLayout(gridLayout);
+        m_container.setLayout(new GridLayout());
     }
 
     private void createInfoHeader(final Composite parent) {
         final Link startScriptInfo = new Link(m_container, SWT.NONE);
-        GridData gridData = new GridData();
-        gridData.horizontalSpan = 2;
-        startScriptInfo.setLayoutData(gridData);
-        final String message =
-            "See the <a href=\"https://www.knime.com/faq#q28\">FAQ</a> for details on how to use a start script.";
+        startScriptInfo.setLayoutData(new GridData());
+        final String message = "See <a href=\"https://docs.knime.com/latest/python_installation_guide/index.html\">"
+            + "this guide</a> for details on how to install Python for use with KNIME.";
         startScriptInfo.setText(message);
         final Color gray = new Color(parent.getDisplay(), 100, 100, 100);
         startScriptInfo.setForeground(gray);
@@ -233,10 +252,10 @@ public class PythonPreferencePage extends PreferencePage implements IWorkbenchPr
         final String pythonVersion) {
         final PythonPathEditor pythonPathEditorToSetDefault;
         final PythonPathEditor pythonPathEditorToUnsetDefault;
-        if ("python2".equals(pythonVersion)) {
+        if (PythonVersion.PYTHON2.getId().equals(pythonVersion)) {
             pythonPathEditorToSetDefault = environmentPanel.getPython2PathEditor();
             pythonPathEditorToUnsetDefault = environmentPanel.getPython3PathEditor();
-        } else if ("python3".equals(pythonVersion)) {
+        } else if (PythonVersion.PYTHON3.getId().equals(pythonVersion)) {
             pythonPathEditorToSetDefault = environmentPanel.getPython3PathEditor();
             pythonPathEditorToUnsetDefault = environmentPanel.getPython2PathEditor();
         } else {
