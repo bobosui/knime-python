@@ -101,13 +101,10 @@ public final class Conda {
      * @throws IOException If an I/O error occurs while resolving a symbolic link.
      */
     public Conda(String pathToExecutable) throws FileNotFoundException, IOException {
-        final Path pathObjectToExecutable = Paths.get(pathToExecutable);
         final File executableFile;
         // TODO: Not only check file system but also PATH.
         try {
-            if (Files.isSymbolicLink(pathObjectToExecutable)) {
-                pathToExecutable = Files.readSymbolicLink(pathObjectToExecutable).toString();
-            }
+            pathToExecutable = resolveSymbolicLink(pathToExecutable);
             executableFile = new File(pathToExecutable);
             if (!executableFile.exists()) {
                 throw new FileNotFoundException("The given path does not point to an existing file.");
@@ -115,10 +112,6 @@ public final class Conda {
         } catch (SecurityException ex) {
             throw new SecurityException("The file at the given path cannot be read. "
                 + "Make sure KNIME has the proper access rights for the file.", ex);
-        } catch (IOException ex) {
-            NodeLogger.getLogger(Conda.class).debug(ex, ex);
-            throw new IOException("An error occured while resolving the given symbolic link. "
-                + "Please retry using a path that does not point to a symbolic link.", ex);
         }
 
         boolean canExecute = true;
@@ -142,6 +135,20 @@ public final class Conda {
             // Stick with non-absolute path.
         }
         m_pathToExecutable = pathToExecutable;
+    }
+
+    private static String resolveSymbolicLink(String pathToExecutable) throws IOException {
+        final Path pathObjectToExecutable = Paths.get(pathToExecutable);
+        try {
+            if (Files.isSymbolicLink(pathObjectToExecutable)) {
+                pathToExecutable = Files.readSymbolicLink(pathObjectToExecutable).toString();
+            }
+        } catch (IOException ex) {
+            NodeLogger.getLogger(Conda.class).debug(ex, ex);
+            throw new IOException("An error occured while resolving the given symbolic link. "
+                + "Please retry using a path that does not point to a symbolic link.", ex);
+        }
+        return pathToExecutable;
     }
 
     /**
