@@ -1597,7 +1597,7 @@ public class PythonKernel implements AutoCloseable {
     }
 
     private void startPipeListeners() {
-        new Thread(() -> {
+        ThreadUtils.threadWithContext(() -> {
             String message;
             final BufferedReader reader = new BufferedReader(new InputStreamReader(m_stdoutStream));
             try {
@@ -1610,7 +1610,7 @@ public class PythonKernel implements AutoCloseable {
 
         }).start();
 
-        new Thread(() -> {
+        ThreadUtils.threadWithContext(() -> {
             String message;
             final BufferedReader reader = new BufferedReader(new InputStreamReader(m_stderrStream));
             try {
