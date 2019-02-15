@@ -79,9 +79,9 @@ final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<
     }
 
     @Override
-    protected void createEnvironmentTypeWidget(final SettingsModelString versionConfig, final Composite panel) {
+    protected void createEnvironmentTypeWidget(final SettingsModelString environmentTypeConfig, final Composite panel) {
         final EnvironmentTypeSelectionRadioGroup environmentTypeSelection =
-            new EnvironmentTypeSelectionRadioGroup(versionConfig, panel);
+            new EnvironmentTypeSelectionRadioGroup(environmentTypeConfig, panel);
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
@@ -116,12 +116,13 @@ final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<
         }
 
         private void setSelectedEnvironmentType(final String environmentTypeId) {
+            final PythonEnvironmentType environmentType = PythonEnvironmentType.fromId(environmentTypeId);
             final Button radioButtonToSelect;
             final Button radioButtonToUnselect;
-            if (PythonEnvironmentType.CONDA.getId().equals(environmentTypeId)) {
+            if (PythonEnvironmentType.CONDA.equals(environmentType)) {
                 radioButtonToSelect = m_condaEnvironmentRadioButton;
                 radioButtonToUnselect = m_manualEnvironmentRadioButton;
-            } else if (PythonEnvironmentType.MANUAL.getId().equals(environmentTypeId)) {
+            } else if (PythonEnvironmentType.MANUAL.equals(environmentType)) {
                 radioButtonToSelect = m_manualEnvironmentRadioButton;
                 radioButtonToUnselect = m_condaEnvironmentRadioButton;
             } else {
@@ -144,15 +145,9 @@ final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<
                 public void widgetSelected(final SelectionEvent e) {
                     final Button button = (Button)e.widget;
                     if (button.getSelection()) {
-                        final String selectedEnvironmentTypeLabel = button.getText();
-                        if (PythonEnvironmentType.CONDA.getName().equals(selectedEnvironmentTypeLabel)) {
-                            environmentTypeConfig.setStringValue(PythonEnvironmentType.CONDA.getId());
-                        } else if (PythonEnvironmentType.MANUAL.getName().equals(selectedEnvironmentTypeLabel)) {
-                            environmentTypeConfig.setStringValue(PythonEnvironmentType.MANUAL.getId());
-                        } else {
-                            throw new IllegalStateException("Selected Python environment type is neither conda nor "
-                                + "manual. This is an implementation error.");
-                        }
+                        final PythonEnvironmentType selectedEnvironmentType =
+                            PythonEnvironmentType.fromName(button.getText());
+                        environmentTypeConfig.setStringValue(selectedEnvironmentType.getId());
                     }
                 }
 

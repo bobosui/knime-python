@@ -117,12 +117,13 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
         }
 
         private void setSelectedPythonVersion(final String pythonVersionId) {
+            final PythonVersion pythonVersion = PythonVersion.fromId(pythonVersionId);
             final Button pythonRadioButtonToSelect;
             final Button pythonRadioButtonToUnselect;
-            if (PythonVersion.PYTHON2.getId().equals(pythonVersionId)) {
+            if (PythonVersion.PYTHON2.equals(pythonVersion)) {
                 pythonRadioButtonToSelect = m_python2RadioButton;
                 pythonRadioButtonToUnselect = m_python3RadioButton;
-            } else if (PythonVersion.PYTHON3.getId().equals(pythonVersionId)) {
+            } else if (PythonVersion.PYTHON3.equals(pythonVersion)) {
                 pythonRadioButtonToSelect = m_python3RadioButton;
                 pythonRadioButtonToUnselect = m_python2RadioButton;
             } else {
@@ -144,15 +145,8 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
                 public void widgetSelected(final SelectionEvent e) {
                     final Button button = (Button)e.widget;
                     if (button.getSelection()) {
-                        final String selectedPythonLabel = button.getText();
-                        if (PythonVersion.PYTHON2.getName().equals(selectedPythonLabel)) {
-                            versionConfig.setStringValue(PythonVersion.PYTHON2.getId());
-                        } else if (PythonVersion.PYTHON3.getName().equals(selectedPythonLabel)) {
-                            versionConfig.setStringValue(PythonVersion.PYTHON3.getId());
-                        } else {
-                            throw new IllegalStateException("Selected default Python version is neither Python 2 nor "
-                                + " Python 3. This is an implementation error.");
-                        }
+                        final PythonVersion selectedPythonVersion = PythonVersion.fromName(button.getText());
+                        versionConfig.setStringValue(selectedPythonVersion.getId());
                     }
                 }
 

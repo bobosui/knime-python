@@ -56,8 +56,15 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.knime.core.node.NodeLogger;
 import org.knime.python2.Activator;
+import org.knime.python2.Conda;
+import org.knime.python2.DefaultPythonCommand;
+import org.knime.python2.PythonCommand;
 import org.knime.python2.PythonModuleSpec;
+import org.knime.python2.PythonVersion;
+import org.knime.python2.config.CondaEnvironmentConfig;
+import org.knime.python2.config.EnvironmentTypeConfig;
 import org.knime.python2.config.ManualEnvironmentConfig;
+import org.knime.python2.config.PythonEnvironmentType;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
 import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtensions;
@@ -77,36 +84,82 @@ public final class PythonPreferences {
     }
 
     /**
-     * @return The currently configured default Python version. Either "python2" or "python3".
+     * @return The currently selected default Python version. Either "python2" or "python3".
      */
-    public static String getPythonVersionPreference() {
+    public static PythonVersion getPythonVersionPreference() {
         final PythonVersionConfig pythonVersionConfig = new PythonVersionConfig();
         new PythonVersionPreferencePersistor(pythonVersionConfig).loadSettingsFrom(CURRENT);
-        return pythonVersionConfig.getPythonVersion().getStringValue();
+        return PythonVersion.fromId(pythonVersionConfig.getPythonVersion().getStringValue());
     }
 
     /**
-     * @return The currently configured default Python 2 path.
+     * @return The currently selected Python environment type (conda v. manual).
      */
-    public static String getPython2CommandPreference() {
-        // TODO: Later, we need to check if manual vs. conda environment configuration is active.
-        final ManualEnvironmentConfig manualEnvironmentconfig = new ManualEnvironmentConfig();
-        new ManualEnvironmentPreferencePersistor(manualEnvironmentconfig).loadSettingsFrom(CURRENT);
-        return manualEnvironmentconfig.getPython2Path().getStringValue();
+    public static PythonEnvironmentType getEnvironmentTypePreference() {
+        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
+        new EnvironmentTypePreferencePersistor(environmentTypeConfig).loadSettingsFrom(CURRENT);
+        return PythonEnvironmentType.fromId(environmentTypeConfig.getEnvironmentType().getStringValue());
     }
 
     /**
-     * @return The currently configured default Python 3 path.
+     * @return The currently selected default Python 2 command.
      */
-    public static String getPython3CommandPreference() {
-        // TODO: Later, we need to check if manual vs. conda environment configuration is active.
-        final ManualEnvironmentConfig manualEnvironmentconfig = new ManualEnvironmentConfig();
-        new ManualEnvironmentPreferencePersistor(manualEnvironmentconfig).loadSettingsFrom(CURRENT);
-        return manualEnvironmentconfig.getPython3Path().getStringValue();
+    public static PythonCommand getPython2CommandPreference() {
+        return getPythonCommandPreference(PythonVersion.PYTHON2);
     }
 
     /**
-     * @return The currently configured serialization library.
+     * @return The currently selected default Python 3 command.
+     */
+    public static PythonCommand getPython3CommandPreference() {
+        return getPythonCommandPreference(PythonVersion.PYTHON3);
+    }
+
+    private static PythonCommand getPythonCommandPreference(final PythonVersion pythonVersion) {
+        final PythonEnvironmentType currentEnvironmentType = getEnvironmentTypePreference();
+        final boolean isPython3;
+        if (PythonVersion.PYTHON2.equals(pythonVersion)) {
+            isPython3 = false;
+        } else if (PythonVersion.PYTHON3.equals(pythonVersion)) {
+            isPython3 = true;
+        } else {
+            throw new IllegalStateException("Selected default Python version is neither Python 2 nor Python 3. "
+                + "This is an implementation error.");
+        }
+        final PythonCommand pythonCommand;
+        if (PythonEnvironmentType.CONDA.equals(currentEnvironmentType)) {
+            final CondaEnvironmentConfig condaEnvironmentConfig = loadCurrentCondaEnvironmentConfig();
+            final String condaExecutablePath = condaEnvironmentConfig.getCondaExecutablePath().getStringValue();
+            final String pythonEnvironment = isPython3 //
+                ? condaEnvironmentConfig.getPython3Environment().getStringValue()
+                : condaEnvironmentConfig.getPython2Environment().getStringValue();
+            pythonCommand = Conda.getPythonCommand(condaExecutablePath, pythonEnvironment);
+        } else if (PythonEnvironmentType.MANUAL.equals(currentEnvironmentType)) {
+            final ManualEnvironmentConfig manualEnvironmentConfig = loadCurrentManualEnvironmentConfig();
+            pythonCommand = new DefaultPythonCommand(isPython3 //
+                ? manualEnvironmentConfig.getPython3Path().getStringValue()
+                : manualEnvironmentConfig.getPython2Path().getStringValue());
+        } else {
+            throw new IllegalStateException(
+                "Selected Python environment type is neither conda nor manual. This is an implementation error.");
+        }
+        return pythonCommand;
+    }
+
+    private static CondaEnvironmentConfig loadCurrentCondaEnvironmentConfig() {
+        final CondaEnvironmentConfig condaEnvironmentConfig = new CondaEnvironmentConfig();
+        new CondaEnvironmentPreferencePersistor(condaEnvironmentConfig).loadSettingsFrom(CURRENT);
+        return condaEnvironmentConfig;
+    }
+
+    private static ManualEnvironmentConfig loadCurrentManualEnvironmentConfig() {
+        final ManualEnvironmentConfig manualEnvironmentConfig = new ManualEnvironmentConfig();
+        new ManualEnvironmentPreferencePersistor(manualEnvironmentConfig).loadSettingsFrom(CURRENT);
+        return manualEnvironmentConfig;
+    }
+
+    /**
+     * @return The currently selected serialization library.
      */
     public static String getSerializerPreference() {
         final SerializerConfig serializerConfig = new SerializerConfig();
@@ -115,7 +168,7 @@ public final class PythonPreferences {
     }
 
     /**
-     * @return The required modules of the currently configured serialization library.
+     * @return The required modules of the currently selected serialization library.
      */
     public static Collection<PythonModuleSpec> getCurrentlyRequiredSerializerModules() {
         return SerializationLibraryExtensions.getSerializationLibraryFactory(getSerializerPreference())

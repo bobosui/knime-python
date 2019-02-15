@@ -86,6 +86,23 @@ public final class Conda {
 
     private static final String DEFAULT_PYTHON3_ENV_PREFIX = "py3_knime";
 
+    private static final String CONDA_CONFIGS_DIRECTORY = "conda-configs";
+
+    /**
+     * @param pathToCondaExecutable
+     * @param environmentName
+     * @return A command to start a Python process in the given environment using the given conda executable.
+     */
+    public static PythonCommand getPythonCommand(final String pathToCondaExecutable, final String environmentName) {
+        final String osSubDirectory = getConfigSubDirectoryForOS();
+        final String osStartScriptFilExtension = getStartScriptFileExtensionForOS();
+        final String relativePathToStartScript =
+            Paths.get(CONDA_CONFIGS_DIRECTORY, osSubDirectory, "py_knime" + "." + osStartScriptFilExtension).toString();
+        final String pathToStartScript =
+            Activator.getFile(Activator.PLUGIN_ID, relativePathToStartScript).getAbsolutePath();
+        return new DefaultPythonCommand(pathToStartScript, pathToCondaExecutable, environmentName);
+    }
+
     private final String m_pathToExecutable;
 
     /**
@@ -103,6 +120,7 @@ public final class Conda {
     public Conda(String pathToExecutable) throws FileNotFoundException, IOException {
         final File executableFile;
         // TODO: Not only check file system but also PATH.
+        // That is, check if "pathToExecutable" is a valid command.
         try {
             pathToExecutable = resolveSymbolicLink(pathToExecutable);
             executableFile = new File(pathToExecutable);
@@ -200,41 +218,38 @@ public final class Conda {
      * Creates a new Python 2 conda environment of a unique name that contains all packages required by the KNIME Python
      * integration.
      *
+     * @param monitor Receives progress of the creation process. Allows to cancel environment creation.
      * @return The name of the created conda environment.
      * @throws IOException If an error occurs during execution of the underlying conda commands.
      * @throws UnsupportedOperationException If creating a default environment is not supported for the local operating
      *             system.
      */
     public String createDefaultPython2Environment(final CondaEnvironmentCreationMonitor monitor) throws IOException {
-        final String osSubDirectory = getConfigSubDirectoryForOS();
-        final String relativePathToDescriptionFile =
-            Paths.get("conda-configs", osSubDirectory, "py27_knime.yml").toString();
-        String pathToDescriptionFile =
-            Activator.getFile(Activator.PLUGIN_ID, relativePathToDescriptionFile).getAbsolutePath();
-        return createEnvironmentFromFile(pathToDescriptionFile, PythonVersion.PYTHON2, monitor);
+        return createDefaultPythonEnvironment("py27_knime.yml", PythonVersion.PYTHON2, monitor);
     }
 
-    private static String getConfigSubDirectoryForOS() {
-        final String osSubDirectory;
-        if (SystemUtils.IS_OS_LINUX) {
-            osSubDirectory = "linux";
-        } else if (SystemUtils.IS_OS_MAC) {
-            osSubDirectory = "macos";
-        } else if (SystemUtils.IS_OS_WINDOWS) {
-            osSubDirectory = "windows";
-        } else {
-            final String osName = SystemUtils.OS_NAME;
-            if (osName == null) {
-                throw new UnsupportedOperationException(
-                    "Could not detect your operating system. This is necessary for environment generation. "
-                        + "Please make sure KNIME has the proper access rights to your system.");
-            } else {
-                throw new UnsupportedOperationException(
-                    "Environment generation is only supported for Windows, Mac, and Linux. Your operating system is: "
-                        + SystemUtils.OS_NAME);
-            }
-        }
-        return osSubDirectory;
+    /**
+     * Creates a new Python 3 conda environment of a unique name that contains all packages required by the KNIME Python
+     * integration.
+     *
+     * @param monitor Receives progress of the creation process. Allows to cancel environment creation.
+     * @return The name of the created conda environment.
+     * @throws IOException If an error occurs during execution of the underlying conda commands.
+     * @throws UnsupportedOperationException If creating a default environment is not supported for the local operating
+     *             system.
+     */
+    public String createDefaultPython3Environment(final CondaEnvironmentCreationMonitor monitor) throws IOException {
+        return createDefaultPythonEnvironment("py35_knime.yml", PythonVersion.PYTHON3, monitor);
+    }
+
+    private String createDefaultPythonEnvironment(final String descriptionFileName, final PythonVersion pythonVersion,
+        final CondaEnvironmentCreationMonitor monitor) throws IOException {
+        final String osSubDirectory = getConfigSubDirectoryForOS();
+        final String relativePathToDescriptionFile =
+            Paths.get(CONDA_CONFIGS_DIRECTORY, osSubDirectory, descriptionFileName).toString();
+        final String pathToDescriptionFile =
+            Activator.getFile(Activator.PLUGIN_ID, relativePathToDescriptionFile).getAbsolutePath();
+        return createEnvironmentFromFile(pathToDescriptionFile, pythonVersion, monitor);
     }
 
     /**
@@ -359,6 +374,45 @@ public final class Conda {
             }
         }
         return false;
+    }
+
+    private static String getConfigSubDirectoryForOS() {
+        final String osSubDirectory;
+        if (SystemUtils.IS_OS_LINUX) {
+            osSubDirectory = "linux";
+        } else if (SystemUtils.IS_OS_MAC) {
+            osSubDirectory = "macos";
+        } else if (SystemUtils.IS_OS_WINDOWS) {
+            osSubDirectory = "windows";
+        } else {
+            throw createUnknownOSException();
+        }
+        return osSubDirectory;
+    }
+
+    private static String getStartScriptFileExtensionForOS() {
+        final String osStartScriptFileExtension;
+        if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC) {
+            osStartScriptFileExtension = "sh";
+        } else if (SystemUtils.IS_OS_WINDOWS) {
+            osStartScriptFileExtension = "bat";
+        } else {
+            throw createUnknownOSException();
+        }
+        return osStartScriptFileExtension;
+    }
+
+    private static UnsupportedOperationException createUnknownOSException() {
+        final String osName = SystemUtils.OS_NAME;
+        if (osName == null) {
+            throw new UnsupportedOperationException(
+                "Could not detect your operating system. This is necessary for conda environment generation and use. "
+                    + "Please make sure KNIME has the proper access rights to your system.");
+        } else {
+            throw new UnsupportedOperationException(
+                "Conda environment generation and use is only supported on Windows, Mac, and Linux. Your operating "
+                    + "system is: " + SystemUtils.OS_NAME);
+        }
     }
 
     abstract static class CondaExecutionMonitor {

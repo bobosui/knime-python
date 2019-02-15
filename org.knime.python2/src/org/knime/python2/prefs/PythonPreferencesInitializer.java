@@ -46,6 +46,8 @@
 package org.knime.python2.prefs;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
+import org.knime.python2.config.CondaEnvironmentConfig;
+import org.knime.python2.config.EnvironmentTypeConfig;
 import org.knime.python2.config.ManualEnvironmentConfig;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
@@ -62,10 +64,19 @@ public final class PythonPreferencesInitializer extends AbstractPreferenceInitia
     @Override
     public void initializeDefaultPreferences() {
         final PreferenceStorage defaultPreferences = PythonPreferences.DEFAULT;
+
         final PythonVersionConfig defaultDefaultVersionConfig = new PythonVersionConfig();
         new PythonVersionPreferencePersistor(defaultDefaultVersionConfig).saveSettingsTo(defaultPreferences);
+
+        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
+        new EnvironmentTypePreferencePersistor(environmentTypeConfig).saveSettingsTo(defaultPreferences);
+
+        final CondaEnvironmentConfig defaultCondaEnvConfig = new CondaEnvironmentConfig();
+        new CondaEnvironmentPreferencePersistor(defaultCondaEnvConfig).saveSettingsTo(defaultPreferences);
+
         final ManualEnvironmentConfig defaultManualEnvConfig = new ManualEnvironmentConfig();
         new ManualEnvironmentPreferencePersistor(defaultManualEnvConfig).saveSettingsTo(defaultPreferences);
+
         final SerializerConfig defaultSerializerConfig = new SerializerConfig();
         new SerializerPreferencePersistor(defaultSerializerConfig).saveSettingsTo(defaultPreferences);
     }

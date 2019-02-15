@@ -63,6 +63,40 @@ public enum PythonEnvironmentType {
          */
         MANUAL("manual", "Manual");
 
+    /**
+     * @param environmentTypeId The {@link #getId() id} of the {@link PythonEnvironmentType} to return.
+     * @return The type of the given id.
+     */
+    public static PythonEnvironmentType fromId(final String environmentTypeId) {
+        final PythonEnvironmentType type;
+        if (CONDA.getId().equals(environmentTypeId)) {
+            type = CONDA;
+        } else if (MANUAL.getId().equals(environmentTypeId)) {
+            type = MANUAL;
+        } else {
+            throw new IllegalStateException("Python environment type '" + environmentTypeId
+                + "' is neither conde nor manual. This is an implementation error.");
+        }
+        return type;
+    }
+
+    /**
+     * @param environmentTypeName The {@link #getName() name} of the {@link PythonEnvironmentType} to return.
+     * @return The type of the given name.
+     */
+    public static PythonEnvironmentType fromName(final String environmentTypeName) {
+        final PythonEnvironmentType type;
+        if (CONDA.getName().equals(environmentTypeName)) {
+            type = CONDA;
+        } else if (MANUAL.getName().equals(environmentTypeName)) {
+            type = MANUAL;
+        } else {
+            throw new IllegalStateException("Python environment type '" + environmentTypeName
+                + "' is neither conde nor manual. This is an implementation error.");
+        }
+        return type;
+    }
+
     private final String m_id;
 
     private final String m_name;
