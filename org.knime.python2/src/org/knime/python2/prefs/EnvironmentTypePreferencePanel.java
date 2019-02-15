@@ -44,31 +44,29 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 25, 2019 (marcel): created
+ *   Feb 15, 2019 (marcel): created
  */
 package org.knime.python2.prefs;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Group;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.PythonVersion;
-import org.knime.python2.config.AbstractPythonVersionPanel;
-import org.knime.python2.config.PythonVersionConfig;
+import org.knime.python2.config.AbstractEnvironmentTypePanel;
+import org.knime.python2.config.EnvironmentTypeConfig;
+import org.knime.python2.config.PythonEnvironmentType;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Composite> {
+final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<Composite> {
 
-    public PythonVersionPreferencePanel(final PythonVersionConfig config, final Composite parent) {
+    public EnvironmentTypePreferencePanel(final EnvironmentTypeConfig config, final Composite parent) {
         super(config, parent);
     }
 
@@ -80,78 +78,75 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
     }
 
     @Override
-    protected void createPythonVersionWidget(final SettingsModelString versionConfig, final Composite panel) {
-        final PythonVersionSelectionRadioGroup versionSelection =
-            new PythonVersionSelectionRadioGroup(versionConfig, panel);
-        final GridData gridData = new GridData();
-        gridData.grabExcessHorizontalSpace = true;
-        gridData.horizontalAlignment = SWT.FILL;
-        versionSelection.setLayoutData(gridData);
+    protected void createEnvironmentTypeWidget(final SettingsModelString versionConfig, final Composite panel) {
+        // TODO Auto-generated method stub
+
     }
 
-    private static final class PythonVersionSelectionRadioGroup extends Composite {
+    private static final class EnvironmentTypeSelectionRadioGroup extends Composite {
 
-        private final Button m_python2RadioButton;
+        private final Button m_condaEnvironmentRadioButton;
 
-        private final Button m_python3RadioButton;
+        private final Button m_manualEnvironmentRadioButton;
 
-        public PythonVersionSelectionRadioGroup(final SettingsModelString versionConfig, final Composite parent) {
+        public EnvironmentTypeSelectionRadioGroup(final SettingsModelString environmentTypeConfig,
+            final Composite parent) {
             super(parent, SWT.NONE);
-            final Group radioButtonGroup = new Group(this, SWT.NONE);
-            radioButtonGroup.setText("Python version to use by default");
-            m_python2RadioButton = new Button(radioButtonGroup, SWT.RADIO);
-            m_python2RadioButton.setText(PythonVersion.PYTHON2.getName());
-            m_python3RadioButton = new Button(radioButtonGroup, SWT.RADIO);
-            m_python3RadioButton.setText(PythonVersion.PYTHON3.getName());
             final RowLayout rowLayout = new RowLayout(SWT.HORIZONTAL);
             rowLayout.pack = false;
             rowLayout.justify = true;
-            radioButtonGroup.setLayout(rowLayout);
-            radioButtonGroup.pack();
-            setSelectedPythonVersion(versionConfig.getStringValue());
-            versionConfig.addChangeListener(e -> setSelectedPythonVersion(versionConfig.getStringValue()));
-            final SelectionListener radioButtonSelectionListener = createRadioButtonSelectionListener(versionConfig);
-            m_python2RadioButton.addSelectionListener(radioButtonSelectionListener);
-            m_python3RadioButton.addSelectionListener(radioButtonSelectionListener);
-
+            setLayout(rowLayout);
+            m_condaEnvironmentRadioButton = new Button(this, SWT.RADIO);
+            m_condaEnvironmentRadioButton.setText(PythonEnvironmentType.CONDA.getName());
+            m_manualEnvironmentRadioButton = new Button(this, SWT.RADIO);
+            m_manualEnvironmentRadioButton.setText(PythonEnvironmentType.MANUAL.getName());
+            pack();
+            setSelectedEnvironmentType(environmentTypeConfig.getStringValue());
+            environmentTypeConfig
+                .addChangeListener(e -> setSelectedEnvironmentType(environmentTypeConfig.getStringValue()));
+            final SelectionListener radioButtonSelectionListener =
+                createRadioButtonSelectionListener(environmentTypeConfig);
+            m_condaEnvironmentRadioButton.addSelectionListener(radioButtonSelectionListener);
+            m_manualEnvironmentRadioButton.addSelectionListener(radioButtonSelectionListener);
         }
 
-        private void setSelectedPythonVersion(final String pythonVersion) {
-            final Button pythonRadioButtonToSelect;
-            final Button pythonRadioButtonToUnselect;
-            if (PythonVersion.PYTHON2.getId().equals(pythonVersion)) {
-                pythonRadioButtonToSelect = m_python2RadioButton;
-                pythonRadioButtonToUnselect = m_python3RadioButton;
-            } else if (PythonVersion.PYTHON3.getId().equals(pythonVersion)) {
-                pythonRadioButtonToSelect = m_python3RadioButton;
-                pythonRadioButtonToUnselect = m_python2RadioButton;
+        private void setSelectedEnvironmentType(final String environmentType) {
+            final Button radioButtonToSelect;
+            final Button radioButtonToUnselect;
+            if (PythonEnvironmentType.CONDA.getId().equals(environmentType)) {
+                radioButtonToSelect = m_condaEnvironmentRadioButton;
+                radioButtonToUnselect = m_manualEnvironmentRadioButton;
+            } else if (PythonEnvironmentType.MANUAL.getId().equals(environmentType)) {
+                radioButtonToSelect = m_manualEnvironmentRadioButton;
+                radioButtonToUnselect = m_condaEnvironmentRadioButton;
             } else {
-                throw new IllegalStateException("Selected default Python version is neither Python 2 nor Python 3. "
-                    + "This is an implementation error.");
+                throw new IllegalStateException("Selected Python environment type is neither conda nor manual. This is "
+                    + "an implementation error.");
             }
-            if (!pythonRadioButtonToSelect.getSelection()) {
-                pythonRadioButtonToSelect.setSelection(true);
+            if (!radioButtonToSelect.getSelection()) {
+                radioButtonToSelect.setSelection(true);
             }
-            if (pythonRadioButtonToUnselect.getSelection()) {
-                pythonRadioButtonToUnselect.setSelection(false);
+            if (radioButtonToUnselect.getSelection()) {
+                radioButtonToUnselect.setSelection(false);
             }
         }
 
-        private static SelectionListener createRadioButtonSelectionListener(final SettingsModelString versionConfig) {
+        private static SelectionListener
+            createRadioButtonSelectionListener(final SettingsModelString environmentTypeConfig) {
             return new SelectionListener() {
 
                 @Override
                 public void widgetSelected(final SelectionEvent e) {
                     final Button button = (Button)e.widget;
                     if (button.getSelection()) {
-                        final String selectedPythonLabel = button.getText();
-                        if (PythonVersion.PYTHON2.getName().equals(selectedPythonLabel)) {
-                            versionConfig.setStringValue(PythonVersion.PYTHON2.getId());
-                        } else if (PythonVersion.PYTHON3.getName().equals(selectedPythonLabel)) {
-                            versionConfig.setStringValue(PythonVersion.PYTHON3.getId());
+                        final String selectedEnvironmentTypeLabel = button.getText();
+                        if (PythonEnvironmentType.CONDA.getName().equals(selectedEnvironmentTypeLabel)) {
+                            environmentTypeConfig.setStringValue(PythonEnvironmentType.CONDA.getId());
+                        } else if (PythonEnvironmentType.MANUAL.getName().equals(selectedEnvironmentTypeLabel)) {
+                            environmentTypeConfig.setStringValue(PythonEnvironmentType.MANUAL.getId());
                         } else {
-                            throw new IllegalStateException("Selected default Python version is neither Python 2 nor "
-                                + " Python 3. This is an implementation error.");
+                            throw new IllegalStateException("Selected Python environment type is neither conda nor "
+                                + "manual. This is an implementation error.");
                         }
                     }
                 }

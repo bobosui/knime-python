@@ -121,12 +121,19 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Environment configuration:
 
-        final EnvironmentTypeConfig environmentConfig = new EnvironmentTypeConfig();
+        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
 
         final Composite environmentConfigurationPanel = new Composite(m_container, SWT.NONE);
         environmentConfigurationPanel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         final StackLayout environmentConfigurationLayout = new StackLayout();
         environmentConfigurationPanel.setLayout(environmentConfigurationLayout);
+
+        // Conda environment configuration:
+
+        final CondaEnvironmentConfig condaEnvironmentConfig = new CondaEnvironmentConfig();
+        final CondaEnvironmentPreferencePanel condaEnvironmentPanel =
+            new CondaEnvironmentPreferencePanel(condaEnvironmentConfig, environmentConfigurationPanel);
+        m_preferencePersistors.add(new CondaEnvironmentPreferencePersistor(condaEnvironmentConfig));
 
         // Manual environment configuration:
 
@@ -135,14 +142,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
             new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, environmentConfigurationPanel);
         m_preferencePersistors.add(new ManualEnvironmentPreferencePersistor(manualEnvironmentConfig));
 
-        // Conda environment configuration:
-
-        final CondaEnvironmentConfig condaEnvironmentConfig = new CondaEnvironmentConfig();
-        final CondaEnvironmentPreferencePanel condaEnvironmentPreferencePanel =
-            new CondaEnvironmentPreferencePanel(condaEnvironmentConfig, environmentConfigurationPanel);
-        m_preferencePersistors.add(new CondaEnvironmentPreferencePersistor(condaEnvironmentConfig));
-
-        environmentConfigurationLayout.topControl = condaEnvironmentPreferencePanel.getPanel();
+        environmentConfigurationLayout.topControl = condaEnvironmentPanel.getPanel();
         environmentConfigurationPanel.layout();
 
         // Serializer selection:
@@ -161,7 +161,8 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Hooks:
 
-        m_configObserver = new PythonEnvironmentConfigObserver(manualEnvironmentConfig, serializerConfig);
+        m_configObserver =
+            new PythonEnvironmentConfigObserver(condaEnvironmentConfig, manualEnvironmentConfig, serializerConfig);
         m_configObserver.addConfigTestStatusListener(new PythonEnvironmentConfigTestStatusListener() {
 
             @Override

@@ -54,7 +54,7 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class ManualEnvironmentConfig {
+public final class ManualEnvironmentConfig extends AbstractEnvironmentConfig {
 
     /**
      * Configuration key for the path to the Python 2 executable ("environment").

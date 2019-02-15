@@ -60,16 +60,22 @@ public abstract class AbstractCondaEnvironmentPanel<W> extends AbstractPythonCon
         super(config, parent);
         final SettingsModelString condaExecutablePath = config.getCondaExecutablePath();
         final W panel = getPanel();
-        createCondaExecutablePathWidget(condaExecutablePath, panel);
-        createPython2EnvironmentWidget(config.getPython2Environment(), condaExecutablePath, panel);
-        createPython3EnvironmentWidget(config.getPython3Environment(), condaExecutablePath, panel);
+        createCondaExecutablePathWidget(condaExecutablePath, config.getCondaInstallationInfo(),
+            config.getCondaInstallationError(), panel);
+        createPython2EnvironmentWidget(config.getPython2Environment(), config.getPython2InstallationInfo(),
+            config.getPython2InstallationError(), condaExecutablePath, panel);
+        createPython3EnvironmentWidget(config.getPython3Environment(), config.getPython3InstallationInfo(),
+            config.getPython3InstallationError(), condaExecutablePath, panel);
     }
 
-    protected abstract void createCondaExecutablePathWidget(SettingsModelString condaExecutablePath, W panel);
+    protected abstract void createCondaExecutablePathWidget(SettingsModelString condaExecutablePath,
+        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage, W panel);
 
     protected abstract void createPython2EnvironmentWidget(SettingsModelString python2Environment,
+        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage,
         SettingsModelString condaExecutablePath, W panel);
 
     protected abstract void createPython3EnvironmentWidget(SettingsModelString python3Environment,
+        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage,
         SettingsModelString condaExecutablePath, W panel);
 }

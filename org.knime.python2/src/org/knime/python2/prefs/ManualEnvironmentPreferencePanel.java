@@ -87,18 +87,22 @@ final class ManualEnvironmentPreferencePanel extends AbstractManualEnvironmentPa
     }
 
     @Override
-    protected void createPython2PathWidget(final SettingsModelString python2Path, final Composite panel) {
+    protected void createPython2PathWidget(final SettingsModelString python2Path,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
+        final Composite panel) {
         final String python2Name = PythonVersion.PYTHON2.getName();
-        m_pythonPath2Editor =
-            new PythonPathEditor(python2Path, python2Name, "Path to the " + python2Name + " start script", panel);
+        m_pythonPath2Editor = new PythonPathEditor(python2Path, python2Name,
+            "Path to the " + python2Name + " start script", installationInfoMessage, installationErrorMessage, panel);
         m_pythonPath2Editor.setLayoutData(createPathEditorLayoutData());
     }
 
     @Override
-    protected void createPython3PathWidget(final SettingsModelString python3Path, final Composite panel) {
+    protected void createPython3PathWidget(final SettingsModelString python3Path,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
+        final Composite panel) {
         final String python3Name = PythonVersion.PYTHON3.getName();
-        m_pythonPath3Editor =
-            new PythonPathEditor(python3Path, python3Name, "Path to the " + python3Name + " start script", panel);
+        m_pythonPath3Editor = new PythonPathEditor(python3Path, python3Name,
+            "Path to the " + python3Name + " start script", installationInfoMessage, installationErrorMessage, panel);
         m_pythonPath3Editor.setLayoutData(createPathEditorLayoutData());
     }
 

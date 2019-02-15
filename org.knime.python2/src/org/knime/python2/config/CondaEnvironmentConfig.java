@@ -54,7 +54,7 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class CondaEnvironmentConfig {
+public final class CondaEnvironmentConfig extends AbstractEnvironmentConfig {
 
     /**
      * Configuration key for the path to the conda executable.
@@ -79,12 +79,12 @@ public final class CondaEnvironmentConfig {
     /**
      * Use no environment by default.
      */
-    public static final String DEFAULT_PYTHON2_CONDA_ENV_NAME = "<none>";
+    public static final String DEFAULT_PYTHON2_CONDA_ENV_NAME = "<no environment>";
 
     /**
      * Use no environment by default.
      */
-    public static final String DEFAULT_PYTHON3_CONDA_ENV_NAME = "<none>";
+    public static final String DEFAULT_PYTHON3_CONDA_ENV_NAME = "<no environment>";
 
     private final SettingsModelString m_condaExecutable =
         new SettingsModelString(CFG_KEY_CONDA_EXECUTABLE_PATH, DEFAULT_CONDA_EXECUTABLE_PATH);
@@ -94,6 +94,14 @@ public final class CondaEnvironmentConfig {
 
     private final SettingsModelString m_python3Environment =
         new SettingsModelString(CFG_KEY_PYTHON3_CONDA_ENV_NAME, DEFAULT_PYTHON3_CONDA_ENV_NAME);
+
+    // Not meant for saving/loading. We just want observable strings here:
+
+    private static final String DUMMY_CFG_KEY = "dummy";
+
+    private final SettingsModelString m_condaInstallationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
+
+    private final SettingsModelString m_condaInstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
 
     /**
      * @return The path to the conda executable.
@@ -114,5 +122,19 @@ public final class CondaEnvironmentConfig {
      */
     public SettingsModelString getPython3Environment() {
         return m_python3Environment;
+    }
+
+    /**
+     * @return The installation status message of the conda executable. Not meant for saving/loading.
+     */
+    public SettingsModelString getCondaInstallationInfo() {
+        return m_condaInstallationInfo;
+    }
+
+    /**
+     * @return The installation error message of the conda executable. Not meant for saving/loading.
+     */
+    public SettingsModelString getCondaInstallationError() {
+        return m_condaInstallationError;
     }
 }

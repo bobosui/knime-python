@@ -63,6 +63,8 @@ import org.knime.python2.config.CondaEnvironmentConfig;
  */
 final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPanel<Composite> {
 
+    private PythonPathEditor m_executablePathEditor;
+
     private CondaEnvironmentSelectionBox m_python2EnvironmentSelection;
 
     private CondaEnvironmentSelectionBox m_python3EnvironmentSelection;
@@ -80,34 +82,43 @@ final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPane
 
     @Override
     protected void createCondaExecutablePathWidget(final SettingsModelString condaExecutablePath,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
         final Composite panel) {
-        final PythonPathEditor executablePathEditor =
-            new PythonPathEditor(condaExecutablePath, "Conda", "Path to the conda executable", panel);
-        executablePathEditor.setLayoutData(createWidgetLayoutData());
+        m_executablePathEditor = new PythonPathEditor(condaExecutablePath, "Conda", "Path to the conda executable",
+            installationInfoMessage, installationErrorMessage, panel);
+        final GridData gridData = new GridData();
+        gridData.grabExcessHorizontalSpace = true;
+        gridData.horizontalAlignment = SWT.FILL;
+        m_executablePathEditor.setLayoutData(gridData);
     }
 
     @Override
     protected void createPython2EnvironmentWidget(final SettingsModelString python2Environment,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
         final SettingsModelString condaExecutablePath, final Composite panel) {
         final String python2Name = PythonVersion.PYTHON2.getName();
         m_python2EnvironmentSelection = new CondaEnvironmentSelectionBox(python2Environment, condaExecutablePath,
-            python2Name, "Name of the " + python2Name + " conda environment", panel);
-        m_python2EnvironmentSelection.setLayoutData(createWidgetLayoutData());
+            python2Name, "Name of the " + python2Name + " conda environment", installationInfoMessage,
+            installationErrorMessage, panel);
+        m_python2EnvironmentSelection.setLayoutData(createEnvironmentSelectionLayoutData());
     }
 
     @Override
     protected void createPython3EnvironmentWidget(final SettingsModelString python3Environment,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
         final SettingsModelString condaExecutablePath, final Composite panel) {
         final String python3Name = PythonVersion.PYTHON3.getName();
         m_python3EnvironmentSelection = new CondaEnvironmentSelectionBox(python3Environment, condaExecutablePath,
-            python3Name, "Name of the " + python3Name + " conda environment", panel);
-        m_python3EnvironmentSelection.setLayoutData(createWidgetLayoutData());
+            python3Name, "Name of the " + python3Name + " conda environment", installationInfoMessage,
+            installationErrorMessage, panel);
+        m_python3EnvironmentSelection.setLayoutData(createEnvironmentSelectionLayoutData());
     }
 
-    private static GridData createWidgetLayoutData() {
+    private static GridData createEnvironmentSelectionLayoutData() {
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
+        gridData.horizontalIndent = 20;
         return gridData;
     }
 }

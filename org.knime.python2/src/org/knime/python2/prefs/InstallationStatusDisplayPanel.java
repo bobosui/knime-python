@@ -44,22 +44,62 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 25, 2019 (marcel): created
+ *   Feb 14, 2019 (marcel): created
  */
-package org.knime.python2.config;
+package org.knime.python2.prefs;
 
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractPythonVersionPanel<W> extends AbstractPythonConfigPanel<PythonVersionConfig, W> {
+final class InstallationStatusDisplayPanel extends Composite {
 
-    public AbstractPythonVersionPanel(final PythonVersionConfig config, final W parent) {
-        super(config, parent);
-        createPythonVersionWidget(config.getPythonVersion(), getPanel());
+    private final Label m_info;
+
+    private final Label m_error;
+
+    public InstallationStatusDisplayPanel(final SettingsModelString infoMessageModel,
+        final SettingsModelString errorMessageModel, final Composite parent) {
+        super(parent, SWT.NONE);
+        setLayout(new GridLayout());
+
+        // Info label:
+        m_info = new Label(this, SWT.NONE);
+        setInfoMessage(infoMessageModel.getStringValue());
+        m_info.setLayoutData(new GridData());
+
+        // Error label:
+        m_error = new Label(this, SWT.NONE);
+        final Color red = new Color(parent.getDisplay(), 255, 0, 0);
+        m_error.setForeground(red);
+        m_error.addDisposeListener(e -> red.dispose());
+        setErrorMessage(errorMessageModel.getStringValue());
+        m_error.setLayoutData(new GridData());
     }
 
-    protected abstract void createPythonVersionWidget(SettingsModelString versionConfig, W panel);
+    private void setInfoMessage(final String info) {
+        if (info == null) {
+            m_info.setText("");
+        } else {
+            m_info.setText(info);
+        }
+        layout();
+    }
+
+    private void setErrorMessage(final String error) {
+        if (error != null) {
+            m_error.setText(error);
+        } else {
+            m_error.setText("");
+        }
+        layout();
+    }
 }

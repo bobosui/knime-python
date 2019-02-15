@@ -59,11 +59,15 @@ public abstract class AbstractManualEnvironmentPanel<W> extends AbstractPythonCo
     public AbstractManualEnvironmentPanel(final ManualEnvironmentConfig config, final W parent) {
         super(config, parent);
         final W panel = getPanel();
-        createPython2PathWidget(config.getPython2Path(), panel);
-        createPython3PathWidget(config.getPython3Path(), panel);
+        createPython2PathWidget(config.getPython2Path(), config.getPython2InstallationInfo(),
+            config.getPython2InstallationError(), panel);
+        createPython3PathWidget(config.getPython3Path(), config.getPython3InstallationInfo(),
+            config.getPython3InstallationError(), panel);
     }
 
-    protected abstract void createPython2PathWidget(SettingsModelString python2Path, W panel);
+    protected abstract void createPython2PathWidget(SettingsModelString python2Path,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage, W panel);
 
-    protected abstract void createPython3PathWidget(SettingsModelString python2Path, W panel);
+    protected abstract void createPython3PathWidget(SettingsModelString python2Path,
+        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage, W panel);
 }

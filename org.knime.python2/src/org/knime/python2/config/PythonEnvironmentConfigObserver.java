@@ -59,7 +59,9 @@ import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExt
 
 /**
  * Observes Python environment configurations and initiates installation tests as soon as relevant configuration entries
- * change. Clients can subscribe to changes in the status of such installation tests or can manually trigger such tests.
+ * change. Clients can subscribe to changes to the status of such installation tests or can manually trigger such tests.
+ * The observer updates all relevant installation status messages in {@link CondaEnvironmentConfig} and/or
+ * {@link ManualEnvironmentConfig} as soon as an installation test finishes.
  *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
@@ -73,12 +75,14 @@ public final class PythonEnvironmentConfigObserver {
     private SerializerConfig m_serializerConfig;
 
     /**
+     * @param condaEnvironmentConfig Conda environment configuration. Changes to the conda executable path as well as to
+     *            the Python 2 and Python 3 environments are observed.
      * @param manualEnvironmentConfig Manual environment configuration. Changes to the Python 2 and Python 3 paths are
      *            observed.
      * @param serializerConfig Serializer configuration. Changes to the serializer are observed.
      */
-    public PythonEnvironmentConfigObserver(final ManualEnvironmentConfig manualEnvironmentConfig,
-        final SerializerConfig serializerConfig) {
+    public PythonEnvironmentConfigObserver(final CondaEnvironmentConfig condaEnvironmentConfig,
+        final ManualEnvironmentConfig manualEnvironmentConfig, final SerializerConfig serializerConfig) {
         m_manualEnvironmentConfig = manualEnvironmentConfig;
         m_serializerConfig = serializerConfig;
         // Test Python environments on change.
@@ -95,7 +99,8 @@ public final class PythonEnvironmentConfigObserver {
     /**
      * Initiates installation tests for all environments that are observed by this instance. The status of each of these
      * tests is published to all listeners registered via
-     * {@link #addConfigTestStatusListener(PythonEnvironmentConfigTestStatusListener)}.
+     * {@link #addConfigTestStatusListener(PythonEnvironmentConfigTestStatusListener)}. Also, all installation status
+     * messages in {@link CondaEnvironmentConfig} and {@link ManualEnvironmentConfig} are updated.
      */
     public void testAllPythonEnvironments() {
         final SettingsModelString python2Path = m_manualEnvironmentConfig.getPython2Path();

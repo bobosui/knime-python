@@ -44,7 +44,7 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 25, 2019 (marcel): created
+ *   Feb 15, 2019 (marcel): created
  */
 package org.knime.python2.config;
 
@@ -54,12 +54,12 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractPythonVersionPanel<W> extends AbstractPythonConfigPanel<PythonVersionConfig, W> {
+public abstract class AbstractEnvironmentTypePanel<W> extends AbstractPythonConfigPanel<EnvironmentTypeConfig, W> {
 
-    public AbstractPythonVersionPanel(final PythonVersionConfig config, final W parent) {
+    public AbstractEnvironmentTypePanel(final EnvironmentTypeConfig config, final W parent) {
         super(config, parent);
-        createPythonVersionWidget(config.getPythonVersion(), getPanel());
+        createEnvironmentTypeWidget(config.getEnvironmentType(), getPanel());
     }
 
-    protected abstract void createPythonVersionWidget(SettingsModelString versionConfig, W panel);
+    protected abstract void createEnvironmentTypeWidget(SettingsModelString versionConfig, W panel);
 }

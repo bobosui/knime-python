@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,9 +41,11 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * ------------------------------------------------------------------------
+ * ---------------------------------------------------------------------
+ *
+ * History
+ *   Feb 14, 2019 (marcel): created
  */
-
 package org.knime.python2.prefs;
 
 import org.eclipse.jface.preference.FileFieldEditor;
@@ -56,17 +59,12 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.python2.Activator;
 
 /**
- * Dialog component that allows to select the path to the executable for a specific Python version.
- *
- * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class PythonPathEditor extends Composite {
+final class CondaPathEditor extends Composite {
 
     private final SettingsModelString m_pathModel;
-
-    private final Label m_header;
 
     /**
      * @param pathModel The settings model for the path.
@@ -76,7 +74,7 @@ final class PythonPathEditor extends Composite {
      * @param errorMessageModel The settings model for the error label.
      * @param parent The parent widget.
      */
-    public PythonPathEditor(final SettingsModelString pathModel, final String headerLabel, final String editorLabel,
+    public CondaPathEditor(final SettingsModelString pathModel, final String headerLabel, final String editorLabel,
         final SettingsModelString infoMessageModel, final SettingsModelString errorMessageModel,
         final Composite parent) {
         super(parent, SWT.NONE);
@@ -87,14 +85,14 @@ final class PythonPathEditor extends Composite {
         setLayout(gridLayout);
 
         // Header:
-        m_header = new Label(this, SWT.NONE);
-        FontDescriptor descriptor = FontDescriptor.createFrom(m_header.getFont());
+        final Label header = new Label(this, SWT.NONE);
+        FontDescriptor descriptor = FontDescriptor.createFrom(header.getFont());
         descriptor = descriptor.setStyle(SWT.BOLD);
-        m_header.setFont(descriptor.createFont(m_header.getDisplay()));
-        m_header.setText(headerLabel);
+        header.setFont(descriptor.createFont(header.getDisplay()));
+        header.setText(headerLabel);
         GridData gridData = new GridData();
         gridData.horizontalSpan = 3;
-        m_header.setLayoutData(gridData);
+        header.setLayoutData(gridData);
 
         // Path editor:
         final FileFieldEditor pathEditor = new FileFieldEditor(Activator.PLUGIN_ID, editorLabel, this);
@@ -109,8 +107,7 @@ final class PythonPathEditor extends Composite {
         pathEditor.setPropertyChangeListener(event -> pathModel.setStringValue(pathEditor.getStringValue()));
 
         // Info and error labels:
-        final InstallationStatusDisplayPanel statusDisplay =
-            new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
+        final InstallationStatusDisplayPanel statusDisplay = new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
         gridData = new GridData();
         gridData.verticalIndent = 20;
         gridData.horizontalSpan = 2;
@@ -122,22 +119,5 @@ final class PythonPathEditor extends Composite {
      */
     public SettingsModelString getPathConfig() {
         return m_pathModel;
-    }
-
-    public void setDisplayAsDefault(final boolean setAsDefault) {
-        final String defaultSuffix = " (Default)";
-        final String oldHeaderText = m_header.getText();
-        if (setAsDefault) {
-            if (!oldHeaderText.endsWith(defaultSuffix)) {
-                m_header.setText(oldHeaderText + defaultSuffix);
-                layout();
-            }
-        } else {
-            final int suffixStart = oldHeaderText.indexOf(defaultSuffix);
-            if (suffixStart != -1) {
-                m_header.setText(oldHeaderText.substring(0, suffixStart));
-                layout();
-            }
-        }
     }
 }

@@ -56,7 +56,6 @@ import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
@@ -74,28 +73,27 @@ final class CondaEnvironmentSelectionBox extends Composite {
 
     private static final String NO_ENVIRONMENT_PLACEHOLDER = "<no environment>";
 
-    private final SettingsModelString m_environmentConfig;
+    private final SettingsModelString m_environmentModel;
 
     private final Label m_header;
 
     private Combo m_environmentSelection;
 
-    private final Label m_info;
-
-    private final Label m_error;
-
     /**
-     * @param environmentConfig The settings model for the conda environment name.
+     * @param environmentModel The settings model for the conda environment name.
      * @param pathToCondaExecutable The settings model that contains the path to the conda executable.
      * @param selectionBoxLabel The description text for the environment selection box.
      * @param headerLabel The text of the header for the path editor's enclosing group box.
+     * @param infoMessageModel The settings model for the info label.
+     * @param errorMessageModel The settings model for the error label.
      * @param parent The parent widget.
      */
-    public CondaEnvironmentSelectionBox(final SettingsModelString environmentConfig,
+    public CondaEnvironmentSelectionBox(final SettingsModelString environmentModel,
         final SettingsModelString pathToCondaExecutable, final String headerLabel, final String selectionBoxLabel,
+        final SettingsModelString infoMessageModel, final SettingsModelString errorMessageModel,
         final Composite parent) {
         super(parent, SWT.NONE);
-        m_environmentConfig = environmentConfig;
+        m_environmentModel = environmentModel;
 
         final GridLayout gridLayout = new GridLayout();
         gridLayout.numColumns = 3;
@@ -117,21 +115,12 @@ final class CondaEnvironmentSelectionBox extends Composite {
         m_environmentSelection = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
         clearSelectionToPlaceholder();
 
-        // Info label:
-        m_info = new Label(this, SWT.NONE);
+        // Info and error labels:
+        final InstallationStatusDisplayPanel statusDisplay = new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
         gridData = new GridData();
-        gridData.horizontalSpan = 2;
         gridData.verticalIndent = 20;
-        m_info.setLayoutData(gridData);
-
-        // Error label:
-        m_error = new Label(this, SWT.NONE);
-        final Color red = new Color(parent.getDisplay(), 255, 0, 0);
-        m_error.setForeground(red);
-        m_error.addDisposeListener(e -> red.dispose());
-        gridData = new GridData();
         gridData.horizontalSpan = 2;
-        m_error.setLayoutData(gridData);
+        statusDisplay.setLayoutData(gridData);
 
         // Populate and hook environment selection:
         refreshAvailableEnvironments(pathToCondaExecutable.getStringValue());
@@ -139,12 +128,12 @@ final class CondaEnvironmentSelectionBox extends Composite {
         pathToCondaExecutable
             .addChangeListener(e -> refreshAvailableEnvironments(pathToCondaExecutable.getStringValue()));
 
-        environmentConfig.addChangeListener(e -> setSelectedEnvironment(environmentConfig.getStringValue()));
+        environmentModel.addChangeListener(e -> setSelectedEnvironment(environmentModel.getStringValue()));
         m_environmentSelection.addSelectionListener(new SelectionListener() {
 
             @Override
             public void widgetSelected(final SelectionEvent e) {
-                environmentConfig.setStringValue(getSelectedEnvironment());
+                environmentModel.setStringValue(getSelectedEnvironment());
             }
 
             @Override
@@ -158,7 +147,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
      * @return The config that holds the environment name displayed and manipulated by this editor.
      */
     public SettingsModelString getEnvironmentConfig() {
-        return m_environmentConfig;
+        return m_environmentModel;
     }
 
     public void setDisplayAsDefault(final boolean setAsDefault) {
@@ -176,34 +165,6 @@ final class CondaEnvironmentSelectionBox extends Composite {
                 layout();
             }
         }
-    }
-
-    /**
-     * Sets the info message of this environment selection.
-     *
-     * @param info The info message.
-     */
-    public void setInfo(final String info) {
-        if (info == null) {
-            m_info.setText("");
-        } else {
-            m_info.setText(info);
-        }
-        layout();
-    }
-
-    /**
-     * Sets the error message of this environment selection.
-     *
-     * @param error The error message.
-     */
-    public void setError(final String error) {
-        if (error != null) {
-            m_error.setText(error);
-        } else {
-            m_error.setText("");
-        }
-        layout();
     }
 
     private void refreshAvailableEnvironments(final String pathToCondaExecutable) {
