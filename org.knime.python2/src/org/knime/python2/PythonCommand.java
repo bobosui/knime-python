@@ -55,4 +55,13 @@ package org.knime.python2;
 public interface PythonCommand {
 
     ProcessBuilder createProcessBuilder();
+
+    @Override
+    int hashCode();
+
+    @Override
+    boolean equals(Object obj);
+
+    @Override
+    String toString();
 }

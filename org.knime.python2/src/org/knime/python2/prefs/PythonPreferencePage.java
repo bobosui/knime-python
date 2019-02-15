@@ -72,13 +72,11 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.knime.core.node.NodeLogger;
-import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
 import org.knime.python2.PythonVersion;
 import org.knime.python2.config.CondaEnvironmentConfig;
 import org.knime.python2.config.EnvironmentTypeConfig;
 import org.knime.python2.config.ManualEnvironmentConfig;
 import org.knime.python2.config.PythonEnvironmentConfigObserver;
-import org.knime.python2.config.PythonEnvironmentConfigObserver.PythonEnvironmentConfigTestStatusListener;
 import org.knime.python2.config.PythonEnvironmentType;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
@@ -188,36 +186,12 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         environmentTypeConfig.getEnvironmentType().addChangeListener(
             e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
 
-        m_configObserver =
-            new PythonEnvironmentConfigObserver(condaEnvironmentConfig, manualEnvironmentConfig, serializerConfig);
-        m_configObserver.addConfigTestStatusListener(new PythonEnvironmentConfigTestStatusListener() {
-
-            @Override
-            public void installationTestStarting(final String environmentKey) {
-                final PythonPathEditor pythonPathEditorForEnvironmentKey =
-                    getEditorForEnvironmentKey(m_manualEnvironmentPanel, environmentKey);
-                pythonPathEditorForEnvironmentKey.setInfo("Testing Python installation...");
-                pythonPathEditorForEnvironmentKey.setError(null);
-            }
-
-            @Override
-            public void installationTestFinished(final String environmentKey, final PythonKernelTestResult testResult) {
-                final PythonPathEditor pythonPathEditorForEnvironmentKey =
-                    getEditorForEnvironmentKey(m_manualEnvironmentPanel, environmentKey);
-                m_parentDisplay.asyncExec(() -> {
-                    if (!getControl().isDisposed()) {
-                        pythonPathEditorForEnvironmentKey.setInfo(testResult.getVersion());
-                        pythonPathEditorForEnvironmentKey.setError(testResult.getErrorLog());
-                        m_container.layout();
-                        m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-                    }
-                });
-            }
-        });
+        m_configObserver = new PythonEnvironmentConfigObserver(environmentTypeConfig, condaEnvironmentConfig,
+            manualEnvironmentConfig, serializerConfig);
 
         // Initial installation test:
 
-        m_configObserver.testAllPythonEnvironments();
+        m_configObserver.testSelectedPythonEnvironmentType();
 
         m_containerScrolledView.setContent(m_container);
         m_containerScrolledView.setExpandHorizontal(true);
@@ -269,22 +243,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_environmentConfigurationPanel.layout();
     }
 
-    private static PythonPathEditor getEditorForEnvironmentKey(final ManualEnvironmentPreferencePanel environmentPanel,
-        final String environmentKey) {
-        final PythonPathEditor python2PathEditor = environmentPanel.getPython2PathEditor();
-        final PythonPathEditor python3PathEditor = environmentPanel.getPython3PathEditor();
-        final PythonPathEditor pythonPathEditorForEnvironmentKey;
-        if (python2PathEditor.getPathConfig().getKey().equals(environmentKey)) {
-            pythonPathEditorForEnvironmentKey = python2PathEditor;
-        } else if (python3PathEditor.getPathConfig().getKey().equals(environmentKey)) {
-            pythonPathEditorForEnvironmentKey = python3PathEditor;
-        } else {
-            throw new IllegalStateException("Python installation test was started for an invalid environment key: "
-                + environmentKey + ". This is an implementation error.");
-        }
-        return pythonPathEditorForEnvironmentKey;
-    }
-
     private static void displayDefaultPythonEnvironment(final ManualEnvironmentPreferencePanel environmentPanel,
         final String pythonVersion) {
         final PythonPathEditor pythonPathEditorToSetDefault;
@@ -312,7 +270,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
     @Override
     protected void performApply() {
         saveConfigurations();
-        m_configObserver.testAllPythonEnvironments();
+        m_configObserver.testSelectedPythonEnvironmentType();
     }
 
     @Override

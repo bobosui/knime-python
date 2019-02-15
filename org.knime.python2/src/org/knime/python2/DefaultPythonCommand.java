@@ -78,4 +78,26 @@ public final class DefaultPythonCommand implements PythonCommand {
     public ProcessBuilder createProcessBuilder() {
         return new ProcessBuilder(new ArrayList<>(m_command));
     }
+
+    @Override
+    public int hashCode() {
+        return m_command.hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || !obj.getClass().equals(getClass())) {
+            return false;
+        }
+        final DefaultPythonCommand other = (DefaultPythonCommand)obj;
+        return other.m_command.equals(m_command);
+    }
+
+    @Override
+    public String toString() {
+        return String.join(" ", m_command);
+    }
 }

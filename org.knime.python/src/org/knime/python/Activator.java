@@ -103,7 +103,7 @@ public class Activator implements BundleActivator {
      * @return The command to start python
      */
     public static String getPythonCommand() {
-        return PythonPreferences.getPython2CommandPreference();
+        return PythonPreferences.getPython2CommandPreference().toString();
     }
 
     /**
