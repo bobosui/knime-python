@@ -51,6 +51,7 @@ package org.knime.python2.prefs;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
@@ -79,8 +80,12 @@ final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<
 
     @Override
     protected void createEnvironmentTypeWidget(final SettingsModelString versionConfig, final Composite panel) {
-        // TODO Auto-generated method stub
-
+        final EnvironmentTypeSelectionRadioGroup environmentTypeSelection =
+            new EnvironmentTypeSelectionRadioGroup(versionConfig, panel);
+        final GridData gridData = new GridData();
+        gridData.grabExcessHorizontalSpace = true;
+        gridData.horizontalAlignment = SWT.FILL;
+        environmentTypeSelection.setLayoutData(gridData);
     }
 
     private static final class EnvironmentTypeSelectionRadioGroup extends Composite {
@@ -110,13 +115,13 @@ final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<
             m_manualEnvironmentRadioButton.addSelectionListener(radioButtonSelectionListener);
         }
 
-        private void setSelectedEnvironmentType(final String environmentType) {
+        private void setSelectedEnvironmentType(final String environmentTypeId) {
             final Button radioButtonToSelect;
             final Button radioButtonToUnselect;
-            if (PythonEnvironmentType.CONDA.getId().equals(environmentType)) {
+            if (PythonEnvironmentType.CONDA.getId().equals(environmentTypeId)) {
                 radioButtonToSelect = m_condaEnvironmentRadioButton;
                 radioButtonToUnselect = m_manualEnvironmentRadioButton;
-            } else if (PythonEnvironmentType.MANUAL.getId().equals(environmentType)) {
+            } else if (PythonEnvironmentType.MANUAL.getId().equals(environmentTypeId)) {
                 radioButtonToSelect = m_manualEnvironmentRadioButton;
                 radioButtonToUnselect = m_condaEnvironmentRadioButton;
             } else {

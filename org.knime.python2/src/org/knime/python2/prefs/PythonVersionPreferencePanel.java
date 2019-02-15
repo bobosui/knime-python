@@ -116,13 +116,13 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
 
         }
 
-        private void setSelectedPythonVersion(final String pythonVersion) {
+        private void setSelectedPythonVersion(final String pythonVersionId) {
             final Button pythonRadioButtonToSelect;
             final Button pythonRadioButtonToUnselect;
-            if (PythonVersion.PYTHON2.getId().equals(pythonVersion)) {
+            if (PythonVersion.PYTHON2.getId().equals(pythonVersionId)) {
                 pythonRadioButtonToSelect = m_python2RadioButton;
                 pythonRadioButtonToUnselect = m_python3RadioButton;
-            } else if (PythonVersion.PYTHON3.getId().equals(pythonVersion)) {
+            } else if (PythonVersion.PYTHON3.getId().equals(pythonVersionId)) {
                 pythonRadioButtonToSelect = m_python3RadioButton;
                 pythonRadioButtonToUnselect = m_python2RadioButton;
             } else {

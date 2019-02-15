@@ -83,6 +83,11 @@ final class InstallationStatusDisplayPanel extends Composite {
         m_error.addDisposeListener(e -> red.dispose());
         setErrorMessage(errorMessageModel.getStringValue());
         m_error.setLayoutData(new GridData());
+
+        // Hooks:
+
+        infoMessageModel.addChangeListener(e -> setInfoMessage(infoMessageModel.getStringValue()));
+        errorMessageModel.addChangeListener(e -> setErrorMessage(errorMessageModel.getStringValue()));
     }
 
     private void setInfoMessage(final String info) {

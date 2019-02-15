@@ -65,6 +65,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
@@ -78,15 +79,16 @@ import org.knime.python2.config.EnvironmentTypeConfig;
 import org.knime.python2.config.ManualEnvironmentConfig;
 import org.knime.python2.config.PythonEnvironmentConfigObserver;
 import org.knime.python2.config.PythonEnvironmentConfigObserver.PythonEnvironmentConfigTestStatusListener;
+import org.knime.python2.config.PythonEnvironmentType;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
 
 /**
- * Preference page for configurations related to the org.knime.python2 plugin.
+ * Preference page for configurations related to the org.knime.python2 plug-in.
  *
- * @author Patrick Winter, KNIME AG, Zurich, Switzerland
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
+ * @author Patrick Winter, KNIME AG, Zurich, Switzerland
  */
 public final class PythonPreferencePage extends PreferencePage implements IWorkbenchPreferencePage {
 
@@ -97,6 +99,12 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
     private Composite m_container;
 
     private List<PreferencePersistor> m_preferencePersistors;
+
+    private StackLayout m_environmentConfigurationLayout;
+
+    private CondaEnvironmentPreferencePanel m_condaEnvironmentPanel;
+
+    private ManualEnvironmentPreferencePanel m_manualEnvironmentPanel;
 
     private PythonEnvironmentConfigObserver m_configObserver;
 
@@ -116,47 +124,59 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         final PythonVersionConfig pythonVersionConfig = new PythonVersionConfig();
         // Reference to object is not needed here; everything is handled in its constructor.
-        new PythonVersionPreferencePanel(pythonVersionConfig, m_container);
+        @SuppressWarnings("unused")
+        final Object unused0 = new PythonVersionPreferencePanel(pythonVersionConfig, m_container);
         m_preferencePersistors.add(new PythonVersionPreferencePersistor(pythonVersionConfig));
 
         // Environment configuration:
 
-        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
+        final Group environmentConfigurationGroup = new Group(m_container, SWT.NONE);
+        environmentConfigurationGroup.setText("Python environment configuration");
+        environmentConfigurationGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-        final Composite environmentConfigurationPanel = new Composite(m_container, SWT.NONE);
+        // Environment type selection:
+
+        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
+        // Reference to object is not needed here; everything is handled in its constructor.
+        @SuppressWarnings("unused")
+        final Object unused1 = new EnvironmentTypePreferencePanel(environmentTypeConfig, environmentConfigurationGroup);
+
+        final Composite environmentConfigurationPanel = new Composite(environmentConfigurationGroup, SWT.NONE);
+        m_environmentConfigurationLayout = new StackLayout();
+        environmentConfigurationPanel.setLayout(m_environmentConfigurationLayout);
         environmentConfigurationPanel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-        final StackLayout environmentConfigurationLayout = new StackLayout();
-        environmentConfigurationPanel.setLayout(environmentConfigurationLayout);
 
         // Conda environment configuration:
 
         final CondaEnvironmentConfig condaEnvironmentConfig = new CondaEnvironmentConfig();
-        final CondaEnvironmentPreferencePanel condaEnvironmentPanel =
+        m_condaEnvironmentPanel =
             new CondaEnvironmentPreferencePanel(condaEnvironmentConfig, environmentConfigurationPanel);
         m_preferencePersistors.add(new CondaEnvironmentPreferencePersistor(condaEnvironmentConfig));
 
         // Manual environment configuration:
 
         final ManualEnvironmentConfig manualEnvironmentConfig = new ManualEnvironmentConfig();
-        final ManualEnvironmentPreferencePanel manualEnvironmentPanel =
+        m_manualEnvironmentPanel =
             new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, environmentConfigurationPanel);
         m_preferencePersistors.add(new ManualEnvironmentPreferencePersistor(manualEnvironmentConfig));
 
-        environmentConfigurationLayout.topControl = condaEnvironmentPanel.getPanel();
-        environmentConfigurationPanel.layout();
+        displayPanelForEnvironmentType(PythonEnvironmentType.CONDA.getId());
+        environmentTypeConfig.getEnvironmentType().addChangeListener(
+            e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
 
         // Serializer selection:
 
         final SerializerConfig serializerConfig = new SerializerConfig();
         // Reference to object is not needed here; everything is handled in its constructor.
-        new SerializerPreferencePanel(serializerConfig, m_container);
+        @SuppressWarnings("unused")
+        Object unused2 = new SerializerPreferencePanel(serializerConfig, m_container);
         m_preferencePersistors.add(new SerializerPreferencePersistor(serializerConfig));
 
         // Load saved configs from preferences:
 
         loadConfigurations();
 
-        displayDefaultPythonEnvironment(manualEnvironmentPanel,
+        displayDefaultPythonEnvironment(m_manualEnvironmentPanel,
             pythonVersionConfig.getPythonVersion().getStringValue());
 
         // Hooks:
@@ -168,7 +188,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
             @Override
             public void installationTestStarting(final String environmentKey) {
                 final PythonPathEditor pythonPathEditorForEnvironmentKey =
-                    getEditorForEnvironmentKey(manualEnvironmentPanel, environmentKey);
+                    getEditorForEnvironmentKey(m_manualEnvironmentPanel, environmentKey);
                 pythonPathEditorForEnvironmentKey.setInfo("Testing Python installation...");
                 pythonPathEditorForEnvironmentKey.setError(null);
             }
@@ -176,7 +196,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
             @Override
             public void installationTestFinished(final String environmentKey, final PythonKernelTestResult testResult) {
                 final PythonPathEditor pythonPathEditorForEnvironmentKey =
-                    getEditorForEnvironmentKey(manualEnvironmentPanel, environmentKey);
+                    getEditorForEnvironmentKey(m_manualEnvironmentPanel, environmentKey);
                 m_parentDisplay.asyncExec(() -> {
                     if (!getControl().isDisposed()) {
                         pythonPathEditorForEnvironmentKey.setInfo(testResult.getVersion());
@@ -189,7 +209,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         });
 
         pythonVersionConfig.getPythonVersion()
-            .addChangeListener(e -> displayDefaultPythonEnvironment(manualEnvironmentPanel,
+            .addChangeListener(e -> displayDefaultPythonEnvironment(m_manualEnvironmentPanel,
                 pythonVersionConfig.getPythonVersion().getStringValue()));
 
         // Initial installation test:
@@ -231,6 +251,16 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
                 }
             }
         });
+    }
+
+    private void displayPanelForEnvironmentType(final String environmentTypeId) {
+        if (PythonEnvironmentType.CONDA.getId().equals(environmentTypeId)) {
+        } else if (PythonEnvironmentType.MANUAL.getId().equals(environmentTypeId)) {
+
+        } else {
+            throw new IllegalStateException(
+                "Selected Python environment type is neither conda nor manual. This is an" + "implementation error.");
+        }
     }
 
     private static PythonPathEditor getEditorForEnvironmentKey(final ManualEnvironmentPreferencePanel environmentPanel,
