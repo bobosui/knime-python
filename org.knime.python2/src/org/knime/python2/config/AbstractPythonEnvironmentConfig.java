@@ -54,9 +54,9 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractEnvironmentConfig {
+public abstract class AbstractPythonEnvironmentConfig implements PythonEnvironmentConfig {
 
-    // Not meant for saving/loading. We just want observable strings here:
+    // Not meant for saving/loading. We just want observable strings here to communicate with the view:
 
     private static final String DUMMY_CFG_KEY = "dummy";
 
@@ -68,30 +68,22 @@ public abstract class AbstractEnvironmentConfig {
 
     private final SettingsModelString m_python3InstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
 
-    /**
-     * @return The installation status message of the Python 2 environment. Not meant for saving/loading.
-     */
+    @Override
     public SettingsModelString getPython2InstallationInfo() {
         return m_python2InstallationInfo;
     }
 
-    /**
-     * @return The installation error message of the Python 2 environment. Not meant for saving/loading.
-     */
+    @Override
     public SettingsModelString getPython2InstallationError() {
         return m_python2InstallationError;
     }
 
-    /**
-     * @return The installation status message of the Python 3 environment. Not meant for saving/loading.
-     */
+    @Override
     public SettingsModelString getPython3InstallationInfo() {
         return m_python3InstallationInfo;
     }
 
-    /**
-     * @return The installation error message of the Python 3 environment. Not meant for saving/loading.
-     */
+    @Override
     public SettingsModelString getPython3InstallationError() {
         return m_python3InstallationError;
     }

@@ -49,6 +49,7 @@
 package org.knime.python2.prefs;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -62,49 +63,45 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  */
 final class InstallationStatusDisplayPanel extends Composite {
 
-    private final Label m_info;
-
-    private final Label m_error;
-
+    /**
+     * @param infoMessageModel May be updated asynchronously, that is, in a non-UI thread. May contain or be set to a
+     *            {@code null} {@link SettingsModelString#getStringValue() value}.
+     * @param errorMessageModel May be updated asynchronously, that is, in a non-UI thread. May contain or be set to a
+     *            {@code null} {@link SettingsModelString#getStringValue() value}.
+     * @param parent The parent control.
+     */
     public InstallationStatusDisplayPanel(final SettingsModelString infoMessageModel,
         final SettingsModelString errorMessageModel, final Composite parent) {
         super(parent, SWT.NONE);
         setLayout(new GridLayout());
 
         // Info label:
-        m_info = new Label(this, SWT.NONE);
-        setInfoMessage(infoMessageModel.getStringValue());
-        m_info.setLayoutData(new GridData());
+        final Label info = new Label(this, SWT.NONE);
+        setLabelText(info, infoMessageModel.getStringValue());
+        info.setLayoutData(new GridData());
 
         // Error label:
-        m_error = new Label(this, SWT.NONE);
+        final Label error = new Label(this, SWT.NONE);
         final Color red = new Color(parent.getDisplay(), 255, 0, 0);
-        m_error.setForeground(red);
-        m_error.addDisposeListener(e -> red.dispose());
-        setErrorMessage(errorMessageModel.getStringValue());
-        m_error.setLayoutData(new GridData());
+        error.setForeground(red);
+        error.addDisposeListener(e -> red.dispose());
+        setLabelText(error, errorMessageModel.getStringValue());
+        error.setLayoutData(new GridData());
 
         // Hooks:
-
-        infoMessageModel.addChangeListener(e -> setInfoMessage(infoMessageModel.getStringValue()));
-        errorMessageModel.addChangeListener(e -> setErrorMessage(errorMessageModel.getStringValue()));
+        infoMessageModel.addChangeListener(e -> setLabelText(info, infoMessageModel.getStringValue()));
+        errorMessageModel.addChangeListener(e -> setLabelText(error, errorMessageModel.getStringValue()));
     }
 
-    private void setInfoMessage(final String info) {
-        if (info == null) {
-            m_info.setText("");
-        } else {
-            m_info.setText(info);
+    private void setLabelText(final Label label, final String text) {
+        final String finalText = text != null ? text : "";
+        try {
+            label.getDisplay().asyncExec(() -> {
+                label.setText(finalText);
+                layout();
+            });
+        } catch (SWTException ex) {
+            // Display or control have been disposed - ignore.
         }
-        layout();
-    }
-
-    private void setErrorMessage(final String error) {
-        if (error != null) {
-            m_error.setText(error);
-        } else {
-            m_error.setText("");
-        }
-        layout();
     }
 }

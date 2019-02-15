@@ -67,14 +67,14 @@ final class CondaEnvironmentPreferencePersistor extends AbstractPreferencePersis
     @Override
     public void saveSettingsTo(final PreferenceStorage storage) {
         AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getCondaExecutablePath(), storage);
-        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython2Environment(), storage);
-        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython3Environment(), storage);
+        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython2EnvironmentName(), storage);
+        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython3EnvironmentName(), storage);
     }
 
     @Override
     public void loadSettingsFrom(final PreferenceStorage storage) {
         AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getCondaExecutablePath(), storage);
-        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython2Environment(), storage);
-        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython3Environment(), storage);
+        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython2EnvironmentName(), storage);
+        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython3EnvironmentName(), storage);
     }
 }

@@ -44,38 +44,46 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 11, 2019 (marcel): created
+ *   Feb 15, 2019 (marcel): created
  */
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractCondaEnvironmentPanel<W> extends AbstractPythonConfigPanel<CondaEnvironmentConfig, W> {
+public interface PythonEnvironmentConfig {
 
-    public AbstractCondaEnvironmentPanel(final CondaEnvironmentConfig config, final W parent) {
-        super(config, parent);
-        final SettingsModelString condaExecutablePath = config.getCondaExecutablePath();
-        final W panel = getPanel();
-        createCondaExecutablePathWidget(condaExecutablePath, config.getCondaInstallationInfo(),
-            config.getCondaInstallationError(), panel);
-        createPython2EnvironmentWidget(config.getPython2EnvironmentName(), config.getPython2InstallationInfo(),
-            config.getPython2InstallationError(), condaExecutablePath, panel);
-        createPython3EnvironmentWidget(config.getPython3EnvironmentName(), config.getPython3InstallationInfo(),
-            config.getPython3InstallationError(), condaExecutablePath, panel);
-    }
+    /**
+     * @return The command that executes Python in the Python 2 environment configured by this instance.
+     */
+    PythonCommand getPython2Command();
 
-    protected abstract void createCondaExecutablePathWidget(SettingsModelString condaExecutablePath,
-        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage, W panel);
+    /**
+     * @return The installation error message of the Python 2 environment. Not meant for saving/loading.
+     */
+    SettingsModelString getPython2InstallationInfo();
 
-    protected abstract void createPython2EnvironmentWidget(SettingsModelString python2Environment,
-        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage,
-        SettingsModelString condaExecutablePath, W panel);
+    /**
+     * @return The installation status message of the Python 2 environment. Not meant for saving/loading.
+     */
+    SettingsModelString getPython2InstallationError();
 
-    protected abstract void createPython3EnvironmentWidget(SettingsModelString python3Environment,
-        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage,
-        SettingsModelString condaExecutablePath, W panel);
+    /**
+     * @return The command that executes Python in the Python 3 environment configured by this instance.
+     */
+    PythonCommand getPython3Command();
+
+    /**
+     * @return The installation status message of the Python 3 environment. Not meant for saving/loading.
+     */
+    SettingsModelString getPython3InstallationInfo();
+
+    /**
+     * @return The installation error message of the Python 3 environment. Not meant for saving/loading.
+     */
+    SettingsModelString getPython3InstallationError();
 }

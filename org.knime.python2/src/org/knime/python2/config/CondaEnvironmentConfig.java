@@ -49,12 +49,14 @@
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.Conda;
+import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class CondaEnvironmentConfig extends AbstractEnvironmentConfig {
+public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfig {
 
     /**
      * Configuration key for the path to the conda executable.
@@ -95,7 +97,7 @@ public final class CondaEnvironmentConfig extends AbstractEnvironmentConfig {
     private final SettingsModelString m_python3Environment =
         new SettingsModelString(CFG_KEY_PYTHON3_CONDA_ENV_NAME, DEFAULT_PYTHON3_CONDA_ENV_NAME);
 
-    // Not meant for saving/loading. We just want observable strings here:
+    // Not meant for saving/loading. We just want observable strings here to communicate with the view:
 
     private static final String DUMMY_CFG_KEY = "dummy";
 
@@ -111,20 +113,6 @@ public final class CondaEnvironmentConfig extends AbstractEnvironmentConfig {
     }
 
     /**
-     * @return The name of the Python 2 conda environment.
-     */
-    public SettingsModelString getPython2Environment() {
-        return m_python2Environment;
-    }
-
-    /**
-     * @return The name of the Python 3 conda environment.
-     */
-    public SettingsModelString getPython3Environment() {
-        return m_python3Environment;
-    }
-
-    /**
      * @return The installation status message of the conda executable. Not meant for saving/loading.
      */
     public SettingsModelString getCondaInstallationInfo() {
@@ -136,5 +124,29 @@ public final class CondaEnvironmentConfig extends AbstractEnvironmentConfig {
      */
     public SettingsModelString getCondaInstallationError() {
         return m_condaInstallationError;
+    }
+
+    /**
+     * @return The name of the Python 2 conda environment.
+     */
+    public SettingsModelString getPython2EnvironmentName() {
+        return m_python2Environment;
+    }
+
+    @Override
+    public PythonCommand getPython2Command() {
+        return Conda.getPythonCommand(m_condaExecutable.getStringValue(), m_python2Environment.getStringValue());
+    }
+
+    /**
+     * @return The name of the Python 3 conda environment.
+     */
+    public SettingsModelString getPython3EnvironmentName() {
+        return m_python3Environment;
+    }
+
+    @Override
+    public PythonCommand getPython3Command() {
+        return Conda.getPythonCommand(m_condaExecutable.getStringValue(), m_python3Environment.getStringValue());
     }
 }

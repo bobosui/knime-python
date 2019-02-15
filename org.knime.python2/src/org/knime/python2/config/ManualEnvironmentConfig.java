@@ -49,12 +49,14 @@
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.DefaultPythonCommand;
+import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class ManualEnvironmentConfig extends AbstractEnvironmentConfig {
+public final class ManualEnvironmentConfig extends AbstractPythonEnvironmentConfig {
 
     /**
      * Configuration key for the path to the Python 2 executable ("environment").
@@ -89,10 +91,20 @@ public final class ManualEnvironmentConfig extends AbstractEnvironmentConfig {
         return m_python2Path;
     }
 
+    @Override
+    public PythonCommand getPython2Command() {
+        return new DefaultPythonCommand(m_python2Path.getStringValue());
+    }
+
     /**
      * @return The path to the Python 3 executable.
      */
     public SettingsModelString getPython3Path() {
         return m_python3Path;
+    }
+
+    @Override
+    public PythonCommand getPython3Command() {
+        return new DefaultPythonCommand(m_python3Path.getStringValue());
     }
 }

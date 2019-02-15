@@ -197,6 +197,8 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_containerScrolledView.setExpandHorizontal(true);
         m_containerScrolledView.setExpandVertical(true);
 
+        // TODO: m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+
         return m_containerScrolledView;
     }
 

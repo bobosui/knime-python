@@ -131,8 +131,8 @@ public final class PythonPreferences {
             final CondaEnvironmentConfig condaEnvironmentConfig = loadCurrentCondaEnvironmentConfig();
             final String condaExecutablePath = condaEnvironmentConfig.getCondaExecutablePath().getStringValue();
             final String pythonEnvironment = isPython3 //
-                ? condaEnvironmentConfig.getPython3Environment().getStringValue()
-                : condaEnvironmentConfig.getPython2Environment().getStringValue();
+                ? condaEnvironmentConfig.getPython3EnvironmentName().getStringValue()
+                : condaEnvironmentConfig.getPython2EnvironmentName().getStringValue();
             pythonCommand = Conda.getPythonCommand(condaExecutablePath, pythonEnvironment);
         } else if (PythonEnvironmentType.MANUAL.equals(currentEnvironmentType)) {
             final ManualEnvironmentConfig manualEnvironmentConfig = loadCurrentManualEnvironmentConfig();
