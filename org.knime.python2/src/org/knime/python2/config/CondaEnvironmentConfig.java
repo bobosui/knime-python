@@ -81,21 +81,21 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
     /**
      * Use no environment by default.
      */
-    public static final String DEFAULT_PYTHON2_CONDA_ENV_NAME = "<no environment>";
+    public static final String PLACEHOLDER_PYTHON2_CONDA_ENV_NAME = "<no environment>";
 
     /**
      * Use no environment by default.
      */
-    public static final String DEFAULT_PYTHON3_CONDA_ENV_NAME = "<no environment>";
+    public static final String PLACEHOLDER_PYTHON3_CONDA_ENV_NAME = "<no environment>";
 
     private final SettingsModelString m_condaExecutable =
         new SettingsModelString(CFG_KEY_CONDA_EXECUTABLE_PATH, DEFAULT_CONDA_EXECUTABLE_PATH);
 
     private final SettingsModelString m_python2Environment =
-        new SettingsModelString(CFG_KEY_PYTHON2_CONDA_ENV_NAME, DEFAULT_PYTHON2_CONDA_ENV_NAME);
+        new SettingsModelString(CFG_KEY_PYTHON2_CONDA_ENV_NAME, PLACEHOLDER_PYTHON2_CONDA_ENV_NAME);
 
     private final SettingsModelString m_python3Environment =
-        new SettingsModelString(CFG_KEY_PYTHON3_CONDA_ENV_NAME, DEFAULT_PYTHON3_CONDA_ENV_NAME);
+        new SettingsModelString(CFG_KEY_PYTHON3_CONDA_ENV_NAME, PLACEHOLDER_PYTHON3_CONDA_ENV_NAME);
 
     // Not meant for saving/loading. We just want observable strings here to communicate with the view:
 

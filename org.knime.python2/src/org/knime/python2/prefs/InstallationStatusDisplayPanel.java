@@ -100,7 +100,7 @@ final class InstallationStatusDisplayPanel extends Composite {
                 label.setText(finalText);
                 layout();
             });
-        } catch (SWTException ex) {
+        } catch (final SWTException ex) {
             // Display or control have been disposed - ignore.
         }
     }

@@ -125,9 +125,13 @@ public final class Conda {
             pathToExecutable = resolveSymbolicLink(pathToExecutable);
             executableFile = new File(pathToExecutable);
             if (!executableFile.exists()) {
-                throw new FileNotFoundException("The given path does not point to an existing file.");
+                final FileNotFoundException ex =
+                    new FileNotFoundException("The given path does not point to an existing file.");
+                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
+                throw ex;
             }
         } catch (SecurityException ex) {
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
             throw new SecurityException("The file at the given path cannot be read. "
                 + "Make sure KNIME has the proper access rights for the file.", ex);
         }
@@ -138,18 +142,21 @@ public final class Conda {
                 canExecute = false;
             }
         } catch (SecurityException ex) {
-            NodeLogger.getLogger(Conda.class).debug(ex, ex);
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
             canExecute = false;
         }
         if (!canExecute) {
-            throw new SecurityException("The file at the given path cannot be executed. "
+            final SecurityException ex = new SecurityException("The file at the given path cannot be executed. "
                 + "Make sure to mark it as executable (Mac, Linux) and make sure KNIME has the proper access rights "
                 + "for the file.");
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
+            throw ex;
         }
 
         try {
             pathToExecutable = executableFile.getAbsolutePath();
         } catch (SecurityException ex) {
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
             // Stick with non-absolute path.
         }
         m_pathToExecutable = pathToExecutable;
@@ -317,6 +324,7 @@ public final class Conda {
                     monitor.handleOutputLine(message);
                 }
             } catch (final IOException ex) {
+                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
                 throw new UncheckedIOException(ex);
             }
             return null;
@@ -328,9 +336,11 @@ public final class Conda {
             try {
                 while (!Thread.interrupted() && (message = reader.readLine()) != null
                     && (message = message.trim()) != "") {
+                    NodeLogger.getLogger(Conda.class).debug(message);
                     monitor.handleErrorLine(message);
                 }
             } catch (final IOException ex) {
+                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
                 throw new UncheckedIOException(ex);
             }
             return null;
@@ -342,18 +352,23 @@ public final class Conda {
 
     private String callCondaAndAwaitTermination(final String... arguments) throws IOException {
         final Process conda = startCondaProcess(arguments);
-        // Get regular output.
-        final StringWriter outputWriter = new StringWriter();
-        IOUtils.copy(conda.getInputStream(), outputWriter, "UTF-8");
-        final String testOutput = outputWriter.toString();
-        // Get error output.
-        final StringWriter errorWriter = new StringWriter();
-        IOUtils.copy(conda.getErrorStream(), errorWriter, "UTF-8");
-        String errorOutput = errorWriter.toString();
-        if (!errorOutput.isEmpty() && !isWarning(errorOutput)) {
-            throw new IOException("An error occurred while running conda:\n" + errorOutput);
+        try {
+            // Get regular output.
+            final StringWriter outputWriter = new StringWriter();
+            IOUtils.copy(conda.getInputStream(), outputWriter, "UTF-8");
+            final String testOutput = outputWriter.toString();
+            // Get error output.
+            final StringWriter errorWriter = new StringWriter();
+            IOUtils.copy(conda.getErrorStream(), errorWriter, "UTF-8");
+            String errorOutput = errorWriter.toString();
+            if (!errorOutput.isEmpty() && !isWarning(errorOutput)) {
+                throw new IOException("An error occurred while running conda:\n" + errorOutput);
+            }
+            return testOutput;
+        } catch (IOException ex) {
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
+            throw ex;
         }
-        return testOutput;
     }
 
     private Process startCondaProcess(final String... arguments) throws IOException {
@@ -361,7 +376,12 @@ public final class Conda {
         argumentList.add(m_pathToExecutable);
         Collections.addAll(argumentList, arguments);
         final ProcessBuilder pb = new ProcessBuilder(argumentList);
-        return pb.start();
+        try {
+            return pb.start();
+        } catch (IOException ex) {
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
+            throw ex;
+        }
     }
 
     private static boolean isWarning(String errorMessage) {

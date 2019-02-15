@@ -55,6 +55,7 @@ import java.util.List;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -72,11 +73,13 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.knime.core.node.NodeLogger;
+import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
 import org.knime.python2.PythonVersion;
 import org.knime.python2.config.CondaEnvironmentConfig;
 import org.knime.python2.config.EnvironmentTypeConfig;
 import org.knime.python2.config.ManualEnvironmentConfig;
 import org.knime.python2.config.PythonEnvironmentConfigObserver;
+import org.knime.python2.config.PythonEnvironmentConfigObserver.PythonEnvironmentConfigTestStatusListener;
 import org.knime.python2.config.PythonEnvironmentType;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
@@ -189,6 +192,22 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_configObserver = new PythonEnvironmentConfigObserver(environmentTypeConfig, condaEnvironmentConfig,
             manualEnvironmentConfig, serializerConfig);
 
+        // Displaying installation test results may require resizing the scroll view.
+        m_configObserver.addConfigTestStatusListener(new PythonEnvironmentConfigTestStatusListener() {
+
+            @Override
+            public void installationTestStarting(final PythonEnvironmentType environmentType,
+                final PythonVersion pythonVersion) {
+                updateDisplayMinSize();
+            }
+
+            @Override
+            public void installationTestFinished(final PythonEnvironmentType environmentType,
+                final PythonVersion pythonVersion, final PythonKernelTestResult testResult) {
+                updateDisplayMinSize();
+            }
+        });
+
         // Initial installation test:
 
         m_configObserver.testSelectedPythonEnvironmentType();
@@ -196,8 +215,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_containerScrolledView.setContent(m_container);
         m_containerScrolledView.setExpandHorizontal(true);
         m_containerScrolledView.setExpandVertical(true);
-
-        // TODO: m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 
         return m_containerScrolledView;
     }
@@ -232,19 +249,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         });
     }
 
-    private void displayPanelForEnvironmentType(final String environmentTypeId) {
-        final PythonEnvironmentType environmentType = PythonEnvironmentType.fromId(environmentTypeId);
-        if (PythonEnvironmentType.CONDA.equals(environmentType)) {
-            m_environmentConfigurationLayout.topControl = m_condaEnvironmentPanel.getPanel();
-        } else if (PythonEnvironmentType.MANUAL.equals(environmentType)) {
-            m_environmentConfigurationLayout.topControl = m_manualEnvironmentPanel.getPanel();
-        } else {
-            throw new IllegalStateException(
-                "Selected Python environment type is neither conda nor manual. This is an implementation error.");
-        }
-        m_environmentConfigurationPanel.layout();
-    }
-
     private static void displayDefaultPythonEnvironment(final ManualEnvironmentPreferencePanel environmentPanel,
         final String pythonVersion) {
         final PythonPathEditor pythonPathEditorToSetDefault;
@@ -261,6 +265,32 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         }
         pythonPathEditorToSetDefault.setDisplayAsDefault(true);
         pythonPathEditorToUnsetDefault.setDisplayAsDefault(false);
+    }
+
+    private void displayPanelForEnvironmentType(final String environmentTypeId) {
+        final PythonEnvironmentType environmentType = PythonEnvironmentType.fromId(environmentTypeId);
+        if (PythonEnvironmentType.CONDA.equals(environmentType)) {
+            m_environmentConfigurationLayout.topControl = m_condaEnvironmentPanel.getPanel();
+        } else if (PythonEnvironmentType.MANUAL.equals(environmentType)) {
+            m_environmentConfigurationLayout.topControl = m_manualEnvironmentPanel.getPanel();
+        } else {
+            throw new IllegalStateException(
+                "Selected Python environment type is neither conda nor manual. This is an implementation error.");
+        }
+        m_environmentConfigurationPanel.layout();
+    }
+
+    private void updateDisplayMinSize() {
+        try {
+            m_parentDisplay.asyncExec(() -> {
+                if (!getControl().isDisposed()) {
+                    m_container.layout();
+                    m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+                }
+            });
+        } catch (final SWTException ex) {
+            // Display or control have been disposed - ignore.
+        }
     }
 
     @Override

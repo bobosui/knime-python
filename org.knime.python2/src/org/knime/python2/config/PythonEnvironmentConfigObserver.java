@@ -49,23 +49,29 @@
 package org.knime.python2.config;
 
 import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.Conda;
 import org.knime.python2.PythonCommand;
 import org.knime.python2.PythonKernelTester;
 import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
 import org.knime.python2.PythonModuleSpec;
+import org.knime.python2.PythonVersion;
 import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtensions;
 
 /**
  * Observes Python environment configurations and initiates installation tests as soon as relevant configuration entries
- * change. Updates all relevant installation status messages in {@link CondaEnvironmentConfig} and/or
+ * change. Clients can subscribe to changes to the status of such installation tests or can manually trigger such tests.
+ * The observer updates all relevant installation status messages in {@link CondaEnvironmentConfig} and/or
  * {@link ManualEnvironmentConfig} as soon as a respective installation test finishes.
  *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
 public final class PythonEnvironmentConfigObserver {
+
+    private CopyOnWriteArrayList<PythonEnvironmentConfigTestStatusListener> m_listeners = new CopyOnWriteArrayList<>();
 
     private EnvironmentTypeConfig m_environmentTypeConfig;
 
@@ -95,8 +101,14 @@ public final class PythonEnvironmentConfigObserver {
         environmentTypeConfig.getEnvironmentType().addChangeListener(e -> testSelectedPythonEnvironmentType());
 
         // Test conda environments on change:
+        condaEnvironmentConfig.getCondaExecutablePath().addChangeListener(e -> {
+            testCondaExecutable();
+            testPythonEnvironment(true, false);
+            testPythonEnvironment(true, true);
+        });
 
         // TODO: Also refresh list of available conda environments if conda executable changes.
+        // TODO: Beware of doubled installation tests (first conda executable change & then conda environment change due to refresh).
 
         condaEnvironmentConfig.getPython2EnvironmentName().addChangeListener(e -> testPythonEnvironment(true, false));
         condaEnvironmentConfig.getPython3EnvironmentName().addChangeListener(e -> testPythonEnvironment(true, true));
@@ -118,6 +130,7 @@ public final class PythonEnvironmentConfigObserver {
         final PythonEnvironmentType environmentType =
             PythonEnvironmentType.fromId(m_environmentTypeConfig.getEnvironmentType().getStringValue());
         if (PythonEnvironmentType.CONDA.equals(environmentType)) {
+            testCondaExecutable();
             testPythonEnvironment(true, false);
             testPythonEnvironment(true, true);
         } else if (PythonEnvironmentType.MANUAL.equals(environmentType)) {
@@ -130,33 +143,140 @@ public final class PythonEnvironmentConfigObserver {
     }
 
     private void testPythonEnvironment(final boolean isConda, final boolean isPython3) {
-        final PythonEnvironmentConfig environmentConfig = isConda //
-            ? m_condaEnvironmentConfig //
-            : m_manualEnvironmentConfig;
+        final PythonEnvironmentConfig environmentConfig;
+        final PythonEnvironmentType environmentType;
+        boolean doNotTest = false;
+        if (isConda) {
+            if (isPlaceholderEnvironmentSelected(isPython3)) {
+                // We don't want to test the placeholder but just clear the installation status messages and return.
+                doNotTest = true;
+            }
+            environmentConfig = m_condaEnvironmentConfig;
+            environmentType = PythonEnvironmentType.CONDA;
+        } else {
+            environmentConfig = m_manualEnvironmentConfig;
+            environmentType = PythonEnvironmentType.MANUAL;
+        }
         final PythonCommand pythonCommand;
         final SettingsModelString installationInfo;
         final SettingsModelString installationError;
+        final PythonVersion pythonVersion;
         if (isPython3) {
             pythonCommand = environmentConfig.getPython3Command();
             installationInfo = environmentConfig.getPython3InstallationInfo();
             installationError = environmentConfig.getPython3InstallationError();
+            pythonVersion = PythonVersion.PYTHON3;
         } else {
             pythonCommand = environmentConfig.getPython2Command();
             installationInfo = environmentConfig.getPython2InstallationInfo();
             installationError = environmentConfig.getPython2InstallationError();
+            pythonVersion = PythonVersion.PYTHON2;
+        }
+        if (doNotTest) {
+            installationInfo.setStringValue("");
+            installationError.setStringValue("");
+            return;
         }
         final Collection<PythonModuleSpec> requiredSerializerModules = SerializationLibraryExtensions
             .getSerializationLibraryFactory(m_serializerConfig.getSerializer().getStringValue())
             .getRequiredExternalModules();
-
         installationInfo.setStringValue("Testing Python installation...");
         installationError.setStringValue("");
+        onInstallationTestStarting(environmentType, pythonVersion);
         new Thread(() -> {
             final PythonKernelTestResult testResult = isPython3 //
                 ? PythonKernelTester.testPython3Installation(pythonCommand, requiredSerializerModules, true) //
                 : PythonKernelTester.testPython2Installation(pythonCommand, requiredSerializerModules, true);
             installationInfo.setStringValue(testResult.getVersion());
             installationError.setStringValue(testResult.getErrorLog());
+            onInstallationTestFinished(environmentType, pythonVersion, testResult);
         }).start();
+    }
+
+    private boolean isPlaceholderEnvironmentSelected(final boolean isPython3) {
+        final SettingsModelString condaEnvironmentName;
+        final String dummyCondaEnvironmentName;
+        if (isPython3) {
+            condaEnvironmentName = m_condaEnvironmentConfig.getPython3EnvironmentName();
+            dummyCondaEnvironmentName = CondaEnvironmentConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME;
+        } else {
+            condaEnvironmentName = m_condaEnvironmentConfig.getPython2EnvironmentName();
+            dummyCondaEnvironmentName = CondaEnvironmentConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME;
+        }
+        return dummyCondaEnvironmentName.equals(condaEnvironmentName.getStringValue());
+    }
+
+    private void testCondaExecutable() {
+        final SettingsModelString infoMessage = m_condaEnvironmentConfig.getCondaInstallationInfo();
+        try {
+            final String condaVersion =
+                new Conda(m_condaEnvironmentConfig.getCondaExecutablePath().getStringValue()).getVersionString();
+            infoMessage.setStringValue(condaVersion);
+        } catch (Exception ex) {
+            clearSelectionToPlaceholder();
+            infoMessage.setStringValue("");
+            String errorMessage = ex.getMessage();
+            if (errorMessage == null) {
+                errorMessage = "";
+            }
+            m_condaEnvironmentConfig.getCondaInstallationError().setStringValue(errorMessage);
+        }
+    }
+
+    private synchronized void onInstallationTestStarting(final PythonEnvironmentType environmentType,
+        final PythonVersion pythonVersion) {
+        for (final PythonEnvironmentConfigTestStatusListener listener : m_listeners) {
+            listener.installationTestStarting(environmentType, pythonVersion);
+        }
+    }
+
+    private synchronized void onInstallationTestFinished(final PythonEnvironmentType environmentType,
+        final PythonVersion pythonVersion, final PythonKernelTestResult testResult) {
+        for (final PythonEnvironmentConfigTestStatusListener listener : m_listeners) {
+            listener.installationTestFinished(environmentType, pythonVersion, testResult);
+        }
+    }
+
+    /**
+     * @param listener A listener which will be notified about changes in the status of any installation test initiated
+     *            by this instance.
+     */
+    public void addConfigTestStatusListener(final PythonEnvironmentConfigTestStatusListener listener) {
+        if (!m_listeners.contains(listener)) {
+            m_listeners.add(listener);
+        }
+    }
+
+    /**
+     * @param listener The listener to remove.
+     * @return {@code true} if the listener was present before removal.
+     */
+    public boolean removeConfigTestStatusListener(final PythonEnvironmentConfigTestStatusListener listener) {
+        return m_listeners.remove(listener);
+    }
+
+    /**
+     * Listener which will be notified about changes in the status of installation tests initiated by the enclosing
+     * class.
+     */
+    public static interface PythonEnvironmentConfigTestStatusListener {
+
+        /**
+         * Called synchronously.
+         *
+         * @param environmentType The environment type of the environment whose installation test is about to start.
+         * @param pythonVersion The Python version of the environment.
+         */
+        void installationTestStarting(PythonEnvironmentType environmentType, PythonVersion pythonVersion);
+
+        /**
+         * Called asynchronously, that is, possibly not in a UI thread.
+         *
+         * @param environmentType The environment type of the environment whose installation test has finished.
+         * @param pythonVersion The Python version of the environment.
+         * @param testResult The result of the installation test.
+         */
+        void installationTestFinished(PythonEnvironmentType environmentType, PythonVersion pythonVersion,
+            PythonKernelTestResult testResult);
     }
 }
