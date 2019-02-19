@@ -121,6 +121,31 @@ public final class PythonEnvironmentConfigObserver {
         serializerConfig.getSerializer().addChangeListener(e -> testSelectedPythonEnvironmentType());
     }
 
+//    private void refreshAvailableEnvironments(final String pathToCondaExecutable) {
+//        try {
+//            final String previousSelection = getSelectedEnvironment();
+//            final Conda conda = new Conda(pathToCondaExecutable);
+//            List<String> environments = conda.getEnvironments();
+//            if (environments.isEmpty()) {
+//                environments = Arrays.asList(NO_ENVIRONMENT_PLACEHOLDER);
+//            }
+//            m_environmentSelection.setItems(environments.toArray(new String[0]));
+//            setSelectedEnvironment(previousSelection);
+//        } catch (Exception ex) {
+//            clearSelectionToPlaceholder();
+//            setInfo(null);
+//            final String errorMessage;
+//            if (ex instanceof FileNotFoundException) {
+//                // Non-existent executable path will be reported elsewhere, so we stay silent here.
+//                errorMessage = null;
+//            } else {
+//                errorMessage = "Failed to list available conda environments. See log for details.";
+//                NodeLogger.getLogger(CondaEnvironmentSelectionBox.class).error(ex);
+//            }
+//            setError(errorMessage);
+//        }
+//    }
+
     /**
      * Initiates installation tests for all environments of the currently selected {@link PythonEnvironmentType}.
      * Depending on the selected type, the status of each of these tests is published to all installation status models

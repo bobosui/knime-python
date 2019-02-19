@@ -48,10 +48,6 @@
  */
 package org.knime.python2.prefs;
 
-import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.List;
-
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
@@ -61,9 +57,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.knime.core.node.NodeLogger;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.Conda;
+import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
@@ -71,17 +66,13 @@ import org.knime.python2.Conda;
  */
 final class CondaEnvironmentSelectionBox extends Composite {
 
-    private static final String NO_ENVIRONMENT_PLACEHOLDER = "<no environment>";
-
-    private final SettingsModelString m_environmentModel;
-
     private final Label m_header;
 
     private Combo m_environmentSelection;
 
     /**
      * @param environmentModel The settings model for the conda environment name.
-     * @param pathToCondaExecutable The settings model that contains the path to the conda executable.
+     * @param availableEnvironmentsModel The list of available conda environments.
      * @param selectionBoxLabel The description text for the environment selection box.
      * @param headerLabel The text of the header for the path editor's enclosing group box.
      * @param infoMessageModel The settings model for the info label.
@@ -89,11 +80,10 @@ final class CondaEnvironmentSelectionBox extends Composite {
      * @param parent The parent widget.
      */
     public CondaEnvironmentSelectionBox(final SettingsModelString environmentModel,
-        final SettingsModelString pathToCondaExecutable, final String headerLabel, final String selectionBoxLabel,
-        final SettingsModelString infoMessageModel, final SettingsModelString errorMessageModel,
-        final Composite parent) {
+        final SettingsModelStringArray availableEnvironmentsModel, final String headerLabel,
+        final String selectionBoxLabel, final SettingsModelString infoMessageModel,
+        final SettingsModelString errorMessageModel, final Composite parent) {
         super(parent, SWT.NONE);
-        m_environmentModel = environmentModel;
 
         final GridLayout gridLayout = new GridLayout();
         gridLayout.numColumns = 3;
@@ -113,21 +103,20 @@ final class CondaEnvironmentSelectionBox extends Composite {
         final Label environmentSelectionLabel = new Label(this, SWT.NONE);
         environmentSelectionLabel.setText(selectionBoxLabel);
         m_environmentSelection = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
-        clearSelectionToPlaceholder();
 
         // Info and error labels:
-        final InstallationStatusDisplayPanel statusDisplay = new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
+        final InstallationStatusDisplayPanel statusDisplay =
+            new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
         gridData = new GridData();
         gridData.verticalIndent = 20;
         gridData.horizontalSpan = 2;
         statusDisplay.setLayoutData(gridData);
 
         // Populate and hook environment selection:
-        refreshAvailableEnvironments(pathToCondaExecutable.getStringValue());
-
-        pathToCondaExecutable
-            .addChangeListener(e -> refreshAvailableEnvironments(pathToCondaExecutable.getStringValue()));
-
+        setAvailableEnvironments(availableEnvironmentsModel.getStringArrayValue(), environmentModel.getStringValue());
+        availableEnvironmentsModel
+            .addChangeListener(e -> setAvailableEnvironments(availableEnvironmentsModel.getStringArrayValue(),
+                environmentModel.getStringValue()));
         environmentModel.addChangeListener(e -> setSelectedEnvironment(environmentModel.getStringValue()));
         m_environmentSelection.addSelectionListener(new SelectionListener() {
 
@@ -141,13 +130,6 @@ final class CondaEnvironmentSelectionBox extends Composite {
                 widgetSelected(e);
             }
         });
-    }
-
-    /**
-     * @return The config that holds the environment name displayed and manipulated by this editor.
-     */
-    public SettingsModelString getEnvironmentConfig() {
-        return m_environmentModel;
     }
 
     public void setDisplayAsDefault(final boolean setAsDefault) {
@@ -167,29 +149,9 @@ final class CondaEnvironmentSelectionBox extends Composite {
         }
     }
 
-    private void refreshAvailableEnvironments(final String pathToCondaExecutable) {
-        try {
-            final String previousSelection = getSelectedEnvironment();
-            final Conda conda = new Conda(pathToCondaExecutable);
-            List<String> environments = conda.getEnvironments();
-            if (environments.isEmpty()) {
-                environments = Arrays.asList(NO_ENVIRONMENT_PLACEHOLDER);
-            }
-            m_environmentSelection.setItems(environments.toArray(new String[0]));
-            setSelectedEnvironment(previousSelection);
-        } catch (Exception ex) {
-            clearSelectionToPlaceholder();
-            setInfo(null);
-            final String errorMessage;
-            if (ex instanceof FileNotFoundException) {
-                // Non-existent executable path will be reported elsewhere, so we stay silent here.
-                errorMessage = null;
-            } else {
-                errorMessage = "Failed to list available conda environments. See log for details.";
-                NodeLogger.getLogger(CondaEnvironmentSelectionBox.class).error(ex);
-            }
-            setError(errorMessage);
-        }
+    private void setAvailableEnvironments(final String[] availableEnvironments, final String selectedEnvironment) {
+        m_environmentSelection.setItems(availableEnvironments);
+        setSelectedEnvironment(selectedEnvironment);
     }
 
     private String getSelectedEnvironment() {
@@ -206,16 +168,8 @@ final class CondaEnvironmentSelectionBox extends Composite {
             }
         }
         if (indexToSelect == -1) {
-            if (numEnvironments == 0) {
-                m_environmentSelection.setItems(NO_ENVIRONMENT_PLACEHOLDER);
-            }
             indexToSelect = 0;
         }
         m_environmentSelection.select(indexToSelect);
-    }
-
-    private void clearSelectionToPlaceholder() {
-        m_environmentSelection.setItems(NO_ENVIRONMENT_PLACEHOLDER);
-        setSelectedEnvironment(NO_ENVIRONMENT_PLACEHOLDER);
     }
 }
