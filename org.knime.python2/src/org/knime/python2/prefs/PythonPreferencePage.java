@@ -67,6 +67,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
@@ -135,6 +136,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         final Group environmentConfigurationGroup = new Group(m_container, SWT.NONE);
         environmentConfigurationGroup.setText("Python environment configuration");
+        environmentConfigurationGroup.setLayout(new GridLayout());
         environmentConfigurationGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
         // Environment type selection:
@@ -143,6 +145,8 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         // Reference to object is not needed here; everything is handled in its constructor.
         @SuppressWarnings("unused")
         final Object unused1 = new EnvironmentTypePreferencePanel(environmentTypeConfig, environmentConfigurationGroup);
+        final Label separator = new Label(environmentConfigurationGroup, SWT.SEPARATOR | SWT.HORIZONTAL);
+        separator.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
         m_environmentConfigurationPanel = new Composite(environmentConfigurationGroup, SWT.NONE);
         m_environmentConfigurationLayout = new StackLayout();
@@ -196,13 +200,23 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_configObserver.addConfigTestStatusListener(new PythonEnvironmentConfigTestStatusListener() {
 
             @Override
-            public void installationTestStarting(final PythonEnvironmentType environmentType,
+            public void condaInstallationTestStarting() {
+                updateDisplayMinSize();
+            }
+
+            @Override
+            public void condaInstallationTestFinished(final String errorMessage) {
+                updateDisplayMinSize();
+            }
+
+            @Override
+            public void environmentInstallationTestStarting(final PythonEnvironmentType environmentType,
                 final PythonVersion pythonVersion) {
                 updateDisplayMinSize();
             }
 
             @Override
-            public void installationTestFinished(final PythonEnvironmentType environmentType,
+            public void environmentInstallationTestFinished(final PythonEnvironmentType environmentType,
                 final PythonVersion pythonVersion, final PythonKernelTestResult testResult) {
                 updateDisplayMinSize();
             }
@@ -212,10 +226,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         m_configObserver.testSelectedPythonEnvironmentType();
 
-        m_containerScrolledView.setContent(m_container);
-        m_containerScrolledView.setExpandHorizontal(true);
-        m_containerScrolledView.setExpandVertical(true);
-
         return m_containerScrolledView;
     }
 
@@ -223,7 +233,14 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_parentDisplay = parent.getDisplay();
         m_containerScrolledView = new ScrolledComposite(parent, SWT.H_SCROLL | SWT.V_SCROLL);
         m_container = new Composite(m_containerScrolledView, SWT.NONE);
-        m_container.setLayout(new GridLayout());
+        final GridLayout gridLayout = new GridLayout();
+        gridLayout.marginWidth = 0;
+        gridLayout.marginHeight = 0;
+        m_container.setLayout(gridLayout);
+
+        m_containerScrolledView.setContent(m_container);
+        m_containerScrolledView.setExpandHorizontal(true);
+        m_containerScrolledView.setExpandVertical(true);
     }
 
     private void createInfoHeader(final Composite parent) {
@@ -275,14 +292,14 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
             m_environmentConfigurationLayout.topControl = m_manualEnvironmentPanel.getPanel();
         } else {
             throw new IllegalStateException(
-                "Selected Python environment type is neither conda nor manual. This is an implementation error.");
+                "Selected Python environment type is neither Conda nor manual. This is an implementation error.");
         }
         m_environmentConfigurationPanel.layout();
     }
 
     private void updateDisplayMinSize() {
         try {
-            m_parentDisplay.asyncExec(() -> {
+            m_parentDisplay.syncExec(() -> {
                 if (!getControl().isDisposed()) {
                     m_container.layout();
                     m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));

@@ -49,6 +49,7 @@
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 import org.knime.python2.Conda;
 import org.knime.python2.PythonCommand;
 
@@ -97,13 +98,19 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
     private final SettingsModelString m_python3Environment =
         new SettingsModelString(CFG_KEY_PYTHON3_CONDA_ENV_NAME, PLACEHOLDER_PYTHON3_CONDA_ENV_NAME);
 
-    // Not meant for saving/loading. We just want observable strings here to communicate with the view:
+    // Not meant for saving/loading. We just want observable values here to communicate with the view:
 
     private static final String DUMMY_CFG_KEY = "dummy";
 
     private final SettingsModelString m_condaInstallationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
 
     private final SettingsModelString m_condaInstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
+
+    private final SettingsModelStringArray m_python2AvailableEnvironments =
+        new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{PLACEHOLDER_PYTHON2_CONDA_ENV_NAME});
+
+    private final SettingsModelStringArray m_python3AvailableEnvironments =
+        new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{PLACEHOLDER_PYTHON3_CONDA_ENV_NAME});
 
     /**
      * @return The path to the conda executable.
@@ -133,6 +140,13 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
         return m_python2Environment;
     }
 
+    /**
+     * @return The list of currently available Python 2 conda environments. Not meant for saving/loading.
+     */
+    public SettingsModelStringArray getPython2AvailableEnvironments() {
+        return m_python2AvailableEnvironments;
+    }
+
     @Override
     public PythonCommand getPython2Command() {
         return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_python2Environment.getStringValue());
@@ -143,6 +157,13 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
      */
     public SettingsModelString getPython3EnvironmentName() {
         return m_python3Environment;
+    }
+
+    /**
+     * @return The list of currently available Python 3 conda environments. Not meant for saving/loading.
+     */
+    public SettingsModelStringArray getPython3AvailableEnvironments() {
+        return m_python3AvailableEnvironments;
     }
 
     @Override

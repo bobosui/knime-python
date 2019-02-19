@@ -49,6 +49,7 @@
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
@@ -58,24 +59,23 @@ public abstract class AbstractCondaEnvironmentPanel<W> extends AbstractPythonCon
 
     public AbstractCondaEnvironmentPanel(final CondaEnvironmentConfig config, final W parent) {
         super(config, parent);
-        final SettingsModelString condaExecutablePath = config.getCondaExecutablePath();
         final W panel = getPanel();
-        createCondaExecutablePathWidget(condaExecutablePath, config.getCondaInstallationInfo(),
+        createCondaExecutablePathWidget(config.getCondaExecutablePath(), config.getCondaInstallationInfo(),
             config.getCondaInstallationError(), panel);
-        createPython2EnvironmentWidget(config.getPython2EnvironmentName(), config.getPython2InstallationInfo(),
-            config.getPython2InstallationError(), condaExecutablePath, panel);
-        createPython3EnvironmentWidget(config.getPython3EnvironmentName(), config.getPython3InstallationInfo(),
-            config.getPython3InstallationError(), condaExecutablePath, panel);
+        createPython2EnvironmentWidget(config.getPython2EnvironmentName(), config.getPython2AvailableEnvironments(),
+            config.getPython2InstallationInfo(), config.getPython2InstallationError(), panel);
+        createPython3EnvironmentWidget(config.getPython3EnvironmentName(), config.getPython3AvailableEnvironments(),
+            config.getPython3InstallationInfo(), config.getPython3InstallationError(), panel);
     }
 
     protected abstract void createCondaExecutablePathWidget(SettingsModelString condaExecutablePath,
         SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage, W panel);
 
     protected abstract void createPython2EnvironmentWidget(SettingsModelString python2Environment,
-        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage,
-        SettingsModelString condaExecutablePath, W panel);
+        SettingsModelStringArray python2AvailableEnvironments, SettingsModelString installationInfoMessage,
+        SettingsModelString installationErrorMessage, W panel);
 
     protected abstract void createPython3EnvironmentWidget(SettingsModelString python3Environment,
-        SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage,
-        SettingsModelString condaExecutablePath, W panel);
+        SettingsModelStringArray python3AvailableEnvironments, SettingsModelString installationInfoMessage,
+        SettingsModelString installationErrorMessage, W panel);
 }

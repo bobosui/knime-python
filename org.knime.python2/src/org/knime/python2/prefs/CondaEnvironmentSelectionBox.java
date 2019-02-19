@@ -113,10 +113,10 @@ final class CondaEnvironmentSelectionBox extends Composite {
         statusDisplay.setLayoutData(gridData);
 
         // Populate and hook environment selection:
-        setAvailableEnvironments(availableEnvironmentsModel.getStringArrayValue(), environmentModel.getStringValue());
+        setAvailableEnvironments(availableEnvironmentsModel.getStringArrayValue());
+        setSelectedEnvironment(environmentModel.getStringValue());
         availableEnvironmentsModel
-            .addChangeListener(e -> setAvailableEnvironments(availableEnvironmentsModel.getStringArrayValue(),
-                environmentModel.getStringValue()));
+            .addChangeListener(e -> setAvailableEnvironments(availableEnvironmentsModel.getStringArrayValue()));
         environmentModel.addChangeListener(e -> setSelectedEnvironment(environmentModel.getStringValue()));
         m_environmentSelection.addSelectionListener(new SelectionListener() {
 
@@ -149,9 +149,8 @@ final class CondaEnvironmentSelectionBox extends Composite {
         }
     }
 
-    private void setAvailableEnvironments(final String[] availableEnvironments, final String selectedEnvironment) {
+    private void setAvailableEnvironments(final String[] availableEnvironments) {
         m_environmentSelection.setItems(availableEnvironments);
-        setSelectedEnvironment(selectedEnvironment);
     }
 
     private String getSelectedEnvironment() {

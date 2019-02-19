@@ -73,7 +73,7 @@ import org.knime.core.node.NodeLogger;
 import org.knime.core.util.Version;
 
 /**
- * Interface to an external conda process.
+ * Interface to an external {@code conda} process.
  *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
@@ -121,6 +121,9 @@ public final class Conda {
     private String m_rootPrefix = null;
 
     /**
+     * Creates an interface to the given external {@code conda} command. Tests the validity of the given command and
+     * throws an {@link IOException} if it is invalid.
+     *
      * @param condaCommand The {@code conda} command. Could be the path to a conda executable or a command that gets
      *            properly resolved by the operating system's path environment.
      *
@@ -187,15 +190,18 @@ public final class Conda {
         String versionString = getVersionString();
         final Version version;
         try {
-            // We expect a return value of the form "conda major.minor.micro".
+            // We expect a return value of the form "conda <major>.<minor>.<micro>".
             versionString = versionString.split(" ")[1];
             version = new Version(versionString);
         } catch (Exception ex) {
             // Skip test if we can't identify version.
+            NodeLogger.getLogger(Conda.class).warn("Could not detect installed Conda version. Please note that a "
+                + "minimum version of " + CONDA_MINIMUM_VERSION + " is required.");
             return;
         }
         if (version.compareTo(CONDA_MINIMUM_VERSION) < 0) {
-            throw new IOException();
+            throw new IOException("Conda version is " + version.toString() + ". Required minimum version is "
+                + CONDA_MINIMUM_VERSION + ". Please update Conda.");
         }
     }
 

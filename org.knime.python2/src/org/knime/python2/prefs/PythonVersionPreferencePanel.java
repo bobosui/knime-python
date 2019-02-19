@@ -75,7 +75,9 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
     @Override
     protected Composite createPanel(final Composite parent) {
         final Composite panel = new Composite(parent, SWT.NONE);
-        panel.setLayout(new GridLayout());
+        final GridLayout gridLayout = new GridLayout();
+        gridLayout.marginWidth = 0;
+        panel.setLayout(gridLayout);
         return panel;
     }
 
@@ -106,6 +108,7 @@ final class PythonVersionPreferencePanel extends AbstractPythonVersionPanel<Comp
             final RowLayout rowLayout = new RowLayout(SWT.HORIZONTAL);
             rowLayout.pack = false;
             rowLayout.justify = true;
+            rowLayout.marginLeft = 0;
             radioButtonGroup.setLayout(rowLayout);
             radioButtonGroup.pack();
             setSelectedPythonVersion(versionConfig.getStringValue());

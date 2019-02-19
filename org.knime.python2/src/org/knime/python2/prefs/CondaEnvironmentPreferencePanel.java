@@ -53,6 +53,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 import org.knime.python2.PythonVersion;
 import org.knime.python2.config.AbstractCondaEnvironmentPanel;
 import org.knime.python2.config.CondaEnvironmentConfig;
@@ -84,7 +85,7 @@ final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPane
     protected void createCondaExecutablePathWidget(final SettingsModelString condaExecutablePath,
         final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
         final Composite panel) {
-        m_executablePathEditor = new PythonPathEditor(condaExecutablePath, "Conda", "Path to the conda executable",
+        m_executablePathEditor = new PythonPathEditor(condaExecutablePath, "Conda", "Path to the Conda executable",
             installationInfoMessage, installationErrorMessage, panel);
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
@@ -94,23 +95,23 @@ final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPane
 
     @Override
     protected void createPython2EnvironmentWidget(final SettingsModelString python2Environment,
-        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
-        final SettingsModelString condaExecutablePath, final Composite panel) {
+        final SettingsModelStringArray python2AvailableEnvironments, final SettingsModelString installationInfoMessage,
+        final SettingsModelString installationErrorMessage, final Composite panel) {
         final String python2Name = PythonVersion.PYTHON2.getName();
-        m_python2EnvironmentSelection = new CondaEnvironmentSelectionBox(python2Environment, condaExecutablePath,
-            python2Name, "Name of the " + python2Name + " conda environment", installationInfoMessage,
-            installationErrorMessage, panel);
+        m_python2EnvironmentSelection = new CondaEnvironmentSelectionBox(python2Environment,
+            python2AvailableEnvironments, python2Name, "Name of the " + python2Name + " Conda environment",
+            installationInfoMessage, installationErrorMessage, panel);
         m_python2EnvironmentSelection.setLayoutData(createEnvironmentSelectionLayoutData());
     }
 
     @Override
     protected void createPython3EnvironmentWidget(final SettingsModelString python3Environment,
-        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
-        final SettingsModelString condaExecutablePath, final Composite panel) {
+        final SettingsModelStringArray python3AvailableEnvironments, final SettingsModelString installationInfoMessage,
+        final SettingsModelString installationErrorMessage, final Composite panel) {
         final String python3Name = PythonVersion.PYTHON3.getName();
-        m_python3EnvironmentSelection = new CondaEnvironmentSelectionBox(python3Environment, condaExecutablePath,
-            python3Name, "Name of the " + python3Name + " conda environment", installationInfoMessage,
-            installationErrorMessage, panel);
+        m_python3EnvironmentSelection = new CondaEnvironmentSelectionBox(python3Environment,
+            python3AvailableEnvironments, python3Name, "Name of the " + python3Name + " Conda environment",
+            installationInfoMessage, installationErrorMessage, panel);
         m_python3EnvironmentSelection.setLayoutData(createEnvironmentSelectionLayoutData());
     }
 

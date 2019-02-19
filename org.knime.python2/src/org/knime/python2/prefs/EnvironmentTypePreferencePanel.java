@@ -126,7 +126,7 @@ final class EnvironmentTypePreferencePanel extends AbstractEnvironmentTypePanel<
                 radioButtonToSelect = m_manualEnvironmentRadioButton;
                 radioButtonToUnselect = m_condaEnvironmentRadioButton;
             } else {
-                throw new IllegalStateException("Selected Python environment type is neither conda nor manual. This is "
+                throw new IllegalStateException("Selected Python environment type is neither Conda nor manual. This is "
                     + "an implementation error.");
             }
             if (!radioButtonToSelect.getSelection()) {

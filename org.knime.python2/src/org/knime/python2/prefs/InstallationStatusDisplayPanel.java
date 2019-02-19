@@ -96,7 +96,7 @@ final class InstallationStatusDisplayPanel extends Composite {
     private void setLabelText(final Label label, final String text) {
         final String finalText = text != null ? text : "";
         try {
-            label.getDisplay().asyncExec(() -> {
+            label.getDisplay().syncExec(() -> {
                 label.setText(finalText);
                 layout();
             });

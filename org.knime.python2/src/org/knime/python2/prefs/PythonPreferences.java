@@ -141,7 +141,7 @@ public final class PythonPreferences {
                 : manualEnvironmentConfig.getPython2Path().getStringValue());
         } else {
             throw new IllegalStateException(
-                "Selected Python environment type is neither conda nor manual. This is an implementation error.");
+                "Selected Python environment type is neither Conda nor manual. This is an implementation error.");
         }
         return pythonCommand;
     }
