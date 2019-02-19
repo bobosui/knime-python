@@ -49,11 +49,21 @@
 package org.knime.python2;
 
 /**
+ * Describes an external Python process. The process can be started via the {@link ProcessBuilder} returned by
+ * {@link #createProcessBuilder()}.
+ * <P>
+ * Implementation note: Implementors of this interface must override {@link #hashCode()}, {@link #equals(Object)}, and
+ * {@link #toString()} in a value-based way.
+ *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
 public interface PythonCommand {
 
+    /**
+     * @return A {@link ProcessBuilder} that can be used to parameterize and start the Python process represented by
+     *         this command instance.
+     */
     ProcessBuilder createProcessBuilder();
 
     @Override

@@ -50,20 +50,17 @@ package org.knime.python2;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.FutureTask;
+import java.util.function.Consumer;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -103,7 +100,7 @@ public final class Conda {
         return new DefaultPythonCommand(pathToStartScript, pathToCondaExecutable, environmentName);
     }
 
-    private final String m_pathToExecutable;
+    private final String m_command;
 
     /**
      * Lazily initialized by {@link #getEnvironments()}.
@@ -111,69 +108,61 @@ public final class Conda {
     private String m_rootPrefix = null;
 
     /**
-     * @param pathToExecutable The path to the conda executable.
-     * @throws InvalidPathException If the given path is of an invalid format.
-     * @throws FileNotFoundException If the given path does not point to an existing file.
-     * @throws SecurityException If the conda executable cannot be read or executed by this application.
-     * @throws IOException If an I/O error occurs while resolving a symbolic link.
+     * @param condaCommand The {@code conda} command. Could be the path to a conda executable or a command that gets
+     *            properly resolved by the operating system's path environment.
+     *
+     * @throws SecurityException If the conda command points to a regular file which cannot be read or executed by this
+     *             application.
+     * @throws IOException If the given command is not a valid conda command.
      */
-    public Conda(String pathToExecutable) throws FileNotFoundException, IOException {
-        final File executableFile;
-        // TODO: Not only check file system but also PATH.
-        // That is, check if "pathToExecutable" is a valid command.
-        try {
-            pathToExecutable = resolveSymbolicLink(pathToExecutable);
-            executableFile = new File(pathToExecutable);
-            if (!executableFile.exists()) {
-                final FileNotFoundException ex =
-                    new FileNotFoundException("The given path does not point to an existing file.");
+    public Conda(String condaCommand) throws IOException {
+        final File executableFile = tryResolvePath(condaCommand);
+        if (executableFile != null) {
+            // Command is a regular file. Test whether it's executable and issue a suitable error message if it's not.
+            boolean canExecute = false;
+            try {
+                if (executableFile.canExecute() || executableFile.setExecutable(true)) {
+                    canExecute = true;
+                }
+            } catch (SecurityException ex) {
+                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
+                canExecute = false;
+            }
+            if (!canExecute) {
+                final SecurityException ex = new SecurityException("The file at the given path cannot be executed. "
+                    + "Make sure to mark it as executable (Mac, Linux) and make sure KNIME has the proper access rights "
+                    + "for the file.");
                 NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
                 throw ex;
             }
-        } catch (SecurityException ex) {
-            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-            throw new SecurityException("The file at the given path cannot be read. "
-                + "Make sure KNIME has the proper access rights for the file.", ex);
-        }
-
-        boolean canExecute = true;
-        try {
-            if (!executableFile.canExecute() && !executableFile.setExecutable(true)) {
-                canExecute = false;
+            try {
+                condaCommand = executableFile.getAbsolutePath();
+            } catch (SecurityException ex) {
+                // Stick with the non-absolute path.
             }
-        } catch (SecurityException ex) {
-            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-            canExecute = false;
-        }
-        if (!canExecute) {
-            final SecurityException ex = new SecurityException("The file at the given path cannot be executed. "
-                + "Make sure to mark it as executable (Mac, Linux) and make sure KNIME has the proper access rights "
-                + "for the file.");
-            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-            throw ex;
-        }
+        } // Else just stick with the command string.
+        m_command = condaCommand;
 
-        try {
-            pathToExecutable = executableFile.getAbsolutePath();
-        } catch (SecurityException ex) {
-            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-            // Stick with non-absolute path.
-        }
-        m_pathToExecutable = pathToExecutable;
+        // Test conda installation by trying to get its version. Method throws an exception if conda could not be called
+        // properly.
+        getVersionString();
     }
 
-    private static String resolveSymbolicLink(String pathToExecutable) throws IOException {
-        final Path pathObjectToExecutable = Paths.get(pathToExecutable);
+    /**
+     * Try to resolve the conda command to a regular file. Return {@code null} if this fails, indicating that the
+     * command is not a regular file but will be resolved using the operating system's path environment.
+     */
+    private static File tryResolvePath(final String condaCommand) {
+        File condaCommandFile;
         try {
-            if (Files.isSymbolicLink(pathObjectToExecutable)) {
-                pathToExecutable = Files.readSymbolicLink(pathObjectToExecutable).toString();
+            condaCommandFile = new File(condaCommand);
+            if (!condaCommandFile.isFile() || !condaCommandFile.exists()) {
+                condaCommandFile = null;
             }
-        } catch (IOException ex) {
-            NodeLogger.getLogger(Conda.class).debug(ex, ex);
-            throw new IOException("An error occured while resolving the given symbolic link. "
-                + "Please retry using a path that does not point to a symbolic link.", ex);
+        } catch (Exception ex) {
+            condaCommandFile = null;
         }
-        return pathToExecutable;
+        return condaCommandFile;
     }
 
     /**
@@ -314,40 +303,42 @@ public final class Conda {
     private void callCondaAndMonitorExecution(final CondaExecutionMonitor monitor, final String... arguments)
         throws IOException {
         final Process conda = startCondaProcess(arguments);
+        final Thread outputListener =
+            new Thread(createCondaStreamReaderRunnable(conda.getInputStream(), monitor, monitor::handleOutputLine));
+        final Thread errorListener =
+            new Thread(createCondaStreamReaderRunnable(conda.getErrorStream(), monitor, line -> {
+                NodeLogger.getLogger(Conda.class).debug(line);
+                monitor.handleErrorLine(line);
+            }));
+        outputListener.start();
+        errorListener.start();
 
-        final FutureTask<Void> outputListener = new FutureTask<>(() -> {
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(conda.getInputStream()));
-            String message;
+        final int condaExitCode = awaitTermination(conda);
+        // Should not be necessary, but let's play safe here.
+        outputListener.interrupt();
+        errorListener.interrupt();
+        if (condaExitCode != 0) {
+            throw new IOException("Conda process terminated with error code " + condaExitCode + ".");
+        }
+    }
+
+    private static Runnable createCondaStreamReaderRunnable(final InputStream stream,
+        final CondaExecutionMonitor monitor, final Consumer<String> lineProcessor) {
+        return () -> {
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+            String line;
             try {
-                while (!Thread.interrupted() && (message = reader.readLine()) != null
-                    && (message = message.trim()) != "") {
-                    monitor.handleOutputLine(message);
+                while (!monitor.isCanceled() && !Thread.interrupted() && (line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line != "") {
+                        lineProcessor.accept(line);
+                    }
                 }
             } catch (final IOException ex) {
                 NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
                 throw new UncheckedIOException(ex);
             }
-            return null;
-        });
-
-        final FutureTask<Void> errorListener = new FutureTask<>(() -> {
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(conda.getErrorStream()));
-            String message;
-            try {
-                while (!Thread.interrupted() && (message = reader.readLine()) != null
-                    && (message = message.trim()) != "") {
-                    NodeLogger.getLogger(Conda.class).debug(message);
-                    monitor.handleErrorLine(message);
-                }
-            } catch (final IOException ex) {
-                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-                throw new UncheckedIOException(ex);
-            }
-            return null;
-        });
-
-        outputListener.run();
-        errorListener.run();
+        };
     }
 
     private String callCondaAndAwaitTermination(final String... arguments) throws IOException {
@@ -361,8 +352,19 @@ public final class Conda {
             final StringWriter errorWriter = new StringWriter();
             IOUtils.copy(conda.getErrorStream(), errorWriter, "UTF-8");
             String errorOutput = errorWriter.toString();
-            if (!errorOutput.isEmpty() && !isWarning(errorOutput)) {
-                throw new IOException("An error occurred while running conda:\n" + errorOutput);
+
+            final int condaExitCode = awaitTermination(conda);
+            if (condaExitCode != 0) {
+                String errorMessage;
+                if (!errorOutput.isEmpty() && !isWarning(errorOutput)) {
+                    errorMessage = "Failed to execute conda:\n" + errorOutput;
+                } else {
+                    errorMessage = "Conda process terminated with error code " + condaExitCode + ".";
+                    if (!errorOutput.isEmpty()) {
+                        errorMessage += "\nFurther output: " + errorMessage;
+                    }
+                }
+                throw new IOException(errorMessage);
             }
             return testOutput;
         } catch (IOException ex) {
@@ -373,7 +375,7 @@ public final class Conda {
 
     private Process startCondaProcess(final String... arguments) throws IOException {
         final List<String> argumentList = new ArrayList<>(1 + arguments.length);
-        argumentList.add(m_pathToExecutable);
+        argumentList.add(m_command);
         Collections.addAll(argumentList, arguments);
         final ProcessBuilder pb = new ProcessBuilder(argumentList);
         try {
@@ -381,6 +383,15 @@ public final class Conda {
         } catch (IOException ex) {
             NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
             throw ex;
+        }
+    }
+
+    private static int awaitTermination(final Process conda) throws IOException {
+        try {
+            return conda.waitFor();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IOException("An interrupt occurred while waiting for the conda process to terminate.");
         }
     }
 
@@ -435,16 +446,20 @@ public final class Conda {
         }
     }
 
-    abstract static class CondaExecutionMonitor {
-
-        protected abstract void handleOutputLine(String message);
-
-        protected abstract void handleErrorLine(String message);
-    }
-
+    /**
+     * Allows to monitor the progress of a conda environment creation command. Conda only reports progress for package
+     * downloads.
+     */
     public abstract static class CondaEnvironmentCreationMonitor extends CondaExecutionMonitor {
 
-        protected abstract void handleCreationProgress(final String currentPackage, final double progress);
+        /**
+         * Asynchronous callback that allows to process progress in the download of a Python package.<br>
+         * Exceptions thrown by this callback are discarded.
+         *
+         * @param currentPackage The package for which progress is reported.
+         * @param progress The progress as a fraction in [0, 1].
+         */
+        protected abstract void handlePackageDownloadProgress(final String currentPackage, final double progress);
 
         @Override
         protected final void handleOutputLine(final String message) {
@@ -453,7 +468,49 @@ public final class Conda {
                 final String currentPackage = jsonOutput.getString("fetch");
                 final double maxValue = Double.parseDouble(jsonOutput.getString("maxval"));
                 final double progress = Double.parseDouble(jsonOutput.getString("progress"));
-                handleCreationProgress(currentPackage, progress / maxValue);
+                handlePackageDownloadProgress(currentPackage, progress / maxValue);
+            }
+        }
+    }
+
+    abstract static class CondaExecutionMonitor {
+
+        private boolean m_isCanceled;
+
+        /**
+         * Asynchronous callback that allows to process a non-error output line at a time of the monitored conda
+         * command.<br>
+         * Exceptions thrown by this callback are discarded.
+         *
+         * @param line The output message line, neither {@code null} nor empty.
+         */
+        protected abstract void handleOutputLine(String line);
+
+        /**
+         * Asynchronous callback that allows to process an error output line at a time of the monitored conda
+         * command.<br>
+         * Exceptions thrown by this callback are discarded.
+         *
+         * @param line The error message line, neither {@code null} nor empty.
+         */
+        protected abstract void handleErrorLine(String line);
+
+        /**
+         * Cancels the execution of the monitored conda command.
+         */
+        public synchronized void cancel() {
+            m_isCanceled = true;
+        }
+
+        /**
+         * @return True if the command shall be canceled, false otherwise. Clears the "canceled" flag.
+         */
+        private synchronized boolean isCanceled() {
+            if (m_isCanceled) {
+                m_isCanceled = false;
+                return true;
+            } else {
+                return false;
             }
         }
     }
