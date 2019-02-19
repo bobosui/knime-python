@@ -70,12 +70,17 @@ import javax.json.JsonReader;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.knime.core.node.NodeLogger;
+import org.knime.core.util.Version;
 
 /**
+ * Interface to an external conda process.
+ *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
 public final class Conda {
+
+    private static final Version CONDA_MINIMUM_VERSION = new Version(4, 4, 0);
 
     private static final String ROOT_ENVIRONMENT_NAME = "base";
 
@@ -85,19 +90,27 @@ public final class Conda {
 
     private static final String CONDA_CONFIGS_DIRECTORY = "conda-configs";
 
+    private static final String PYTHON2_DESCRIPTION_FILE = "py27_knime.yml";
+
+    private static final String PYTHON3_DESCRIPTION_FILE = "py35_knime.yml";
+
     /**
-     * @param pathToCondaExecutable
-     * @param environmentName
+     * Creates and returns a {@link PythonCommand} that describes a Python process that is run in a specific conda
+     * environment that is identified by a conda command and an environment name.
+     *
+     * @param condaCommand The {@code conda} command. Could be the path to a conda executable or a command that gets
+     *            properly resolved by the operating system's path environment.
+     * @param environmentName The name of the environment.
      * @return A command to start a Python process in the given environment using the given conda executable.
      */
-    public static PythonCommand getPythonCommand(final String pathToCondaExecutable, final String environmentName) {
+    public static PythonCommand createPythonCommand(final String condaCommand, final String environmentName) {
         final String osSubDirectory = getConfigSubDirectoryForOS();
         final String osStartScriptFilExtension = getStartScriptFileExtensionForOS();
         final String relativePathToStartScript =
-            Paths.get(CONDA_CONFIGS_DIRECTORY, osSubDirectory, "py_knime" + "." + osStartScriptFilExtension).toString();
+            Paths.get(CONDA_CONFIGS_DIRECTORY, osSubDirectory, "start_py" + "." + osStartScriptFilExtension).toString();
         final String pathToStartScript =
             Activator.getFile(Activator.PLUGIN_ID, relativePathToStartScript).getAbsolutePath();
-        return new DefaultPythonCommand(pathToStartScript, pathToCondaExecutable, environmentName);
+        return new DefaultPythonCommand(pathToStartScript, condaCommand, environmentName);
     }
 
     private final String m_command;
@@ -143,9 +156,7 @@ public final class Conda {
         } // Else just stick with the command string.
         m_command = condaCommand;
 
-        // Test conda installation by trying to get its version. Method throws an exception if conda could not be called
-        // properly.
-        getVersionString();
+        testInstallation();
     }
 
     /**
@@ -163,6 +174,29 @@ public final class Conda {
             condaCommandFile = null;
         }
         return condaCommandFile;
+    }
+
+    /**
+     * Test conda installation by trying to get its version. Method throws an exception if conda could not be called
+     * properly. We also check the version bound since we currently require conda {@link #CONDA_MINIMUM_VERSION} or
+     * later.
+     *
+     * @throws IOException If the installation test failed.
+     */
+    private void testInstallation() throws IOException {
+        String versionString = getVersionString();
+        final Version version;
+        try {
+            // We expect a return value of the form "conda major.minor.micro".
+            versionString = versionString.split(" ")[1];
+            version = new Version(versionString);
+        } catch (Exception ex) {
+            // Skip test if we can't identify version.
+            return;
+        }
+        if (version.compareTo(CONDA_MINIMUM_VERSION) < 0) {
+            throw new IOException();
+        }
     }
 
     /**
@@ -221,7 +255,7 @@ public final class Conda {
      *             system.
      */
     public String createDefaultPython2Environment(final CondaEnvironmentCreationMonitor monitor) throws IOException {
-        return createDefaultPythonEnvironment("py27_knime.yml", PythonVersion.PYTHON2, monitor);
+        return createDefaultPythonEnvironment(PYTHON2_DESCRIPTION_FILE, PythonVersion.PYTHON2, monitor);
     }
 
     /**
@@ -235,7 +269,7 @@ public final class Conda {
      *             system.
      */
     public String createDefaultPython3Environment(final CondaEnvironmentCreationMonitor monitor) throws IOException {
-        return createDefaultPythonEnvironment("py35_knime.yml", PythonVersion.PYTHON3, monitor);
+        return createDefaultPythonEnvironment(PYTHON3_DESCRIPTION_FILE, PythonVersion.PYTHON3, monitor);
     }
 
     private String createDefaultPythonEnvironment(final String descriptionFileName, final PythonVersion pythonVersion,

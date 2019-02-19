@@ -135,7 +135,7 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
 
     @Override
     public PythonCommand getPython2Command() {
-        return Conda.getPythonCommand(m_condaExecutable.getStringValue(), m_python2Environment.getStringValue());
+        return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_python2Environment.getStringValue());
     }
 
     /**
@@ -147,6 +147,6 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
 
     @Override
     public PythonCommand getPython3Command() {
-        return Conda.getPythonCommand(m_condaExecutable.getStringValue(), m_python3Environment.getStringValue());
+        return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_python3Environment.getStringValue());
     }
 }
