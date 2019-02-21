@@ -44,40 +44,38 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 15, 2019 (marcel): created
+ *   Feb 21, 2019 (marcel): created
  */
 package org.knime.python2.config;
-
-import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
+ * @param <P> The type of the Python environment configs held by this class.
  */
-public interface PythonEnvironmentConfig {
+public abstract class AbstractPythonEnvironmentsConfig<P extends PythonEnvironmentConfig>
+    implements PythonEnvironmentsConfig {
+
+    private P m_python2EnvironmentConfig;
+
+    private P m_python3EnvironmentConfig;
 
     /**
-     * @return The command that executes Python in the Python environment configured by this instance.
+     * @param python2EnvironmentConfig The config object for the Python 2 environment.
+     * @param python3EnvironmentConfig The config object for the Python 3 environment.
      */
-    PythonCommand getPythonCommand();
+    public AbstractPythonEnvironmentsConfig(final P python2EnvironmentConfig, final P python3EnvironmentConfig) {
+        m_python2EnvironmentConfig = python2EnvironmentConfig;
+        m_python3EnvironmentConfig = python3EnvironmentConfig;
+    }
 
-    /**
-     * @return If the Python environment configured by this instance is currently the default environment. Not meant for
-     *         saving/loading.
-     */
-    SettingsModelBoolean getIsDefaultPythonEnvironment();
+    @Override
+    public PythonEnvironmentConfig getPython2Config() {
+        return m_python2EnvironmentConfig;
+    }
 
-    /**
-     * @return The most recent installation error message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
-     */
-    SettingsModelString getPythonInstallationInfo();
-
-    /**
-     * @return The most recent installation status message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
-     */
-    SettingsModelString getPythonInstallationError();
+    @Override
+    public PythonEnvironmentConfig getPython3Config() {
+        return m_python3EnvironmentConfig;
+    }
 }

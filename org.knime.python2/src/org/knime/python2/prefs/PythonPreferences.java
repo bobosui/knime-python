@@ -132,13 +132,13 @@ public final class PythonPreferences {
             final String condaExecutablePath = condaEnvironmentConfig.getCondaExecutablePath().getStringValue();
             final String pythonEnvironment = isPython3 //
                 ? condaEnvironmentConfig.getPython3EnvironmentName().getStringValue()
-                : condaEnvironmentConfig.getPython2EnvironmentName().getStringValue();
+                : condaEnvironmentConfig.getEnvironmentName().getStringValue();
             pythonCommand = Conda.createPythonCommand(condaExecutablePath, pythonEnvironment);
         } else if (PythonEnvironmentType.MANUAL.equals(currentEnvironmentType)) {
             final ManualEnvironmentConfig manualEnvironmentConfig = loadCurrentManualEnvironmentConfig();
             pythonCommand = new DefaultPythonCommand(isPython3 //
                 ? manualEnvironmentConfig.getPython3Path().getStringValue()
-                : manualEnvironmentConfig.getPython2Path().getStringValue());
+                : manualEnvironmentConfig.getExecutablePath().getStringValue());
         } else {
             throw new IllegalStateException(
                 "Selected Python environment type is neither Conda nor manual. This is an implementation error.");

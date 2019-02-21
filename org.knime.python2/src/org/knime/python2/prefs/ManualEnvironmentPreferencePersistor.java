@@ -66,13 +66,13 @@ final class ManualEnvironmentPreferencePersistor extends AbstractPreferencePersi
 
     @Override
     public void saveSettingsTo(final PreferenceStorage storage) {
-        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython2Path(), storage);
+        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getExecutablePath(), storage);
         AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython3Path(), storage);
     }
 
     @Override
     public void loadSettingsFrom(final PreferenceStorage storage) {
-        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython2Path(), storage);
+        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getExecutablePath(), storage);
         AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython3Path(), storage);
     }
 }

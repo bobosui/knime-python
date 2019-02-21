@@ -44,40 +44,41 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 15, 2019 (marcel): created
+ *   Feb 21, 2019 (marcel): created
  */
 package org.knime.python2.config;
-
-import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public interface PythonEnvironmentConfig {
+public final class ManualEnvironmentsConfig extends AbstractPythonEnvironmentsConfig<ManualEnvironmentConfig> {
 
     /**
-     * @return The command that executes Python in the Python environment configured by this instance.
+     * Configuration key for the path to the Python 2 executable ("environment").
      */
-    PythonCommand getPythonCommand();
+    public static final String CFG_KEY_PYTHON2_PATH = "python2Path";
 
     /**
-     * @return If the Python environment configured by this instance is currently the default environment. Not meant for
-     *         saving/loading.
+     * Configuration key for the path to the Python 3 executable ("environment").
      */
-    SettingsModelBoolean getIsDefaultPythonEnvironment();
+    public static final String CFG_KEY_PYTHON3_PATH = "python3Path";
 
     /**
-     * @return The most recent installation error message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
+     * Use the command 'python' without a specified location by default.
      */
-    SettingsModelString getPythonInstallationInfo();
+    public static final String DEFAULT_PYTHON2_PATH = "python";
 
     /**
-     * @return The most recent installation status message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
+     * Use the command 'python3' without a specified location by default.
      */
-    SettingsModelString getPythonInstallationError();
+    public static final String DEFAULT_PYTHON3_PATH = "python3";
+
+    /**
+     * Creates a new instance of this manual Python config.
+     */
+    public ManualEnvironmentsConfig() {
+        super(new ManualEnvironmentConfig(CFG_KEY_PYTHON2_PATH, DEFAULT_PYTHON2_PATH),
+            new ManualEnvironmentConfig(CFG_KEY_PYTHON3_PATH, DEFAULT_PYTHON3_PATH));
+    }
 }

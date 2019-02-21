@@ -62,8 +62,8 @@ public abstract class AbstractCondaEnvironmentPanel<W> extends AbstractPythonCon
         final W panel = getPanel();
         createCondaExecutablePathWidget(config.getCondaExecutablePath(), config.getCondaInstallationInfo(),
             config.getCondaInstallationError(), panel);
-        createPython2EnvironmentWidget(config.getPython2EnvironmentName(), config.getPython2AvailableEnvironments(),
-            config.getPython2InstallationInfo(), config.getPython2InstallationError(), panel);
+        createPython2EnvironmentWidget(config.getEnvironmentName(), config.getAvailableEnvironmentNames(),
+            config.getPythonInstallationInfo(), config.getPythonInstallationError(), panel);
         createPython3EnvironmentWidget(config.getPython3EnvironmentName(), config.getPython3AvailableEnvironments(),
             config.getPython3InstallationInfo(), config.getPython3InstallationError(), panel);
     }

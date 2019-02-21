@@ -44,40 +44,88 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 15, 2019 (marcel): created
+ *   Feb 21, 2019 (marcel): created
  */
 package org.knime.python2.config;
 
-import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public interface PythonEnvironmentConfig {
+public final class CondaEnvironmentsConfig extends AbstractPythonEnvironmentsConfig<CondaEnvironmentConfig> {
 
     /**
-     * @return The command that executes Python in the Python environment configured by this instance.
+     * Configuration key for the path to the conda executable.
      */
-    PythonCommand getPythonCommand();
+    public static final String CFG_KEY_CONDA_EXECUTABLE_PATH = "condaExecutable";
 
     /**
-     * @return If the Python environment configured by this instance is currently the default environment. Not meant for
-     *         saving/loading.
+     * Configuration key for the Python 2 conda environment.
      */
-    SettingsModelBoolean getIsDefaultPythonEnvironment();
+    public static final String CFG_KEY_PYTHON2_CONDA_ENV_NAME = "python2CondaEnvironmentName";
 
     /**
-     * @return The most recent installation error message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
+     * Configuration key for the Python 3 conda environment.
      */
-    SettingsModelString getPythonInstallationInfo();
+    public static final String CFG_KEY_PYTHON3_CONDA_ENV_NAME = "python3CondaEnvironmentName";
 
     /**
-     * @return The most recent installation status message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
+     * Use command 'conda' without a specified location by default.
      */
-    SettingsModelString getPythonInstallationError();
+    public static final String DEFAULT_CONDA_EXECUTABLE_PATH = "conda";
+
+    /**
+     * Use no environment by default.
+     */
+    public static final String PLACEHOLDER_PYTHON2_CONDA_ENV_NAME = "<no environment>";
+
+    /**
+     * Use no environment by default.
+     */
+    public static final String PLACEHOLDER_PYTHON3_CONDA_ENV_NAME = "<no environment>";
+
+    private final SettingsModelString m_condaExecutable =
+        new SettingsModelString(CFG_KEY_CONDA_EXECUTABLE_PATH, DEFAULT_CONDA_EXECUTABLE_PATH);
+
+    // Not meant for saving/loading. We just want observable values here to communicate with the view:
+
+    private static final String DUMMY_CFG_KEY = "dummy";
+
+    private final SettingsModelString m_condaInstallationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
+
+    private final SettingsModelString m_condaInstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
+
+    /**
+     * Creates a new instance of a Conda config.
+     */
+    public CondaEnvironmentsConfig() {
+        super(
+            new CondaEnvironmentConfig(CFG_KEY_PYTHON2_CONDA_ENV_NAME, PLACEHOLDER_PYTHON2_CONDA_ENV_NAME,
+                m_condaExecutable),
+            new CondaEnvironmentConfig(CFG_KEY_PYTHON3_CONDA_ENV_NAME, PLACEHOLDER_PYTHON3_CONDA_ENV_NAME,
+                m_condaExecutable));
+    }
+
+    /**
+     * @return The path to the conda executable.
+     */
+    public SettingsModelString getCondaExecutablePath() {
+        return m_condaExecutable;
+    }
+
+    /**
+     * @return The installation status message of the conda executable. Not meant for saving/loading.
+     */
+    public SettingsModelString getCondaInstallationInfo() {
+        return m_condaInstallationInfo;
+    }
+
+    /**
+     * @return The installation error message of the conda executable. Not meant for saving/loading.
+     */
+    public SettingsModelString getCondaInstallationError() {
+        return m_condaInstallationError;
+    }
 }

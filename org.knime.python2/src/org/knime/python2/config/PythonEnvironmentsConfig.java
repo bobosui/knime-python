@@ -44,40 +44,23 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 15, 2019 (marcel): created
+ *   Feb 21, 2019 (marcel): created
  */
 package org.knime.python2.config;
-
-import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public interface PythonEnvironmentConfig {
+public interface PythonEnvironmentsConfig {
 
     /**
-     * @return The command that executes Python in the Python environment configured by this instance.
+     * @return The config for the Python 2 environment.
      */
-    PythonCommand getPythonCommand();
+    PythonEnvironmentConfig getPython2Config();
 
     /**
-     * @return If the Python environment configured by this instance is currently the default environment. Not meant for
-     *         saving/loading.
+     * @return The config for the Python 2 environment.
      */
-    SettingsModelBoolean getIsDefaultPythonEnvironment();
-
-    /**
-     * @return The most recent installation error message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
-     */
-    SettingsModelString getPythonInstallationInfo();
-
-    /**
-     * @return The most recent installation status message of the Python environment configured by this instance. Not
-     *         meant for saving/loading.
-     */
-    SettingsModelString getPythonInstallationError();
+    PythonEnvironmentConfig getPython3Config();
 }

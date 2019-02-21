@@ -58,53 +58,25 @@ import org.knime.python2.PythonCommand;
  */
 public final class ManualEnvironmentConfig extends AbstractPythonEnvironmentConfig {
 
-    /**
-     * Configuration key for the path to the Python 2 executable ("environment").
-     */
-    public static final String CFG_KEY_PYTHON2_PATH = "python2Path";
+    private final SettingsModelString m_pythonPath;
 
     /**
-     * Configuration key for the path to the Python 3 executable ("environment").
+     * @param configKey The identifier of this config. Used for saving/loading.
+     * @param defaultPythonPath The initial path to the Python executable.
      */
-    public static final String CFG_KEY_PYTHON3_PATH = "python3Path";
+    public ManualEnvironmentConfig(final String configKey, final String defaultPythonPath) {
+        m_pythonPath = new SettingsModelString(configKey, defaultPythonPath);
+    }
 
     /**
-     * Use the command 'python' without a specified location by default.
+     * @return The path to the Python executable.
      */
-    public static final String DEFAULT_PYTHON2_PATH = "python";
-
-    /**
-     * Use the command 'python3' without a specified location by default.
-     */
-    public static final String DEFAULT_PYTHON3_PATH = "python3";
-
-    private final SettingsModelString m_python2Path =
-        new SettingsModelString(CFG_KEY_PYTHON2_PATH, DEFAULT_PYTHON2_PATH);
-
-    private final SettingsModelString m_python3Path =
-        new SettingsModelString(CFG_KEY_PYTHON3_PATH, DEFAULT_PYTHON3_PATH);
-
-    /**
-     * @return The path to the Python 2 executable.
-     */
-    public SettingsModelString getPython2Path() {
-        return m_python2Path;
+    public SettingsModelString getExecutablePath() {
+        return m_pythonPath;
     }
 
     @Override
-    public PythonCommand getPython2Command() {
-        return new DefaultPythonCommand(m_python2Path.getStringValue());
-    }
-
-    /**
-     * @return The path to the Python 3 executable.
-     */
-    public SettingsModelString getPython3Path() {
-        return m_python3Path;
-    }
-
-    @Override
-    public PythonCommand getPython3Command() {
-        return new DefaultPythonCommand(m_python3Path.getStringValue());
+    public PythonCommand getPythonCommand() {
+        return new DefaultPythonCommand(m_pythonPath.getStringValue());
     }
 }

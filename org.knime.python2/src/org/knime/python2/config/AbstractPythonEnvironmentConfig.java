@@ -48,6 +48,7 @@
  */
 package org.knime.python2.config;
 
+import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
@@ -60,31 +61,24 @@ public abstract class AbstractPythonEnvironmentConfig implements PythonEnvironme
 
     private static final String DUMMY_CFG_KEY = "dummy";
 
-    private final SettingsModelString m_python2InstallationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
+    private final SettingsModelBoolean m_isDefaultEnvironment = new SettingsModelBoolean(DUMMY_CFG_KEY, false);
 
-    private final SettingsModelString m_python3InstallationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
+    private final SettingsModelString m_installationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
 
-    private final SettingsModelString m_python2InstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
-
-    private final SettingsModelString m_python3InstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
+    private final SettingsModelString m_installationError = new SettingsModelString(DUMMY_CFG_KEY, "");
 
     @Override
-    public SettingsModelString getPython2InstallationInfo() {
-        return m_python2InstallationInfo;
+    public SettingsModelBoolean getIsDefaultPythonEnvironment() {
+        return m_isDefaultEnvironment;
     }
 
     @Override
-    public SettingsModelString getPython2InstallationError() {
-        return m_python2InstallationError;
+    public SettingsModelString getPythonInstallationInfo() {
+        return m_installationInfo;
     }
 
     @Override
-    public SettingsModelString getPython3InstallationInfo() {
-        return m_python3InstallationInfo;
-    }
-
-    @Override
-    public SettingsModelString getPython3InstallationError() {
-        return m_python3InstallationError;
+    public SettingsModelString getPythonInstallationError() {
+        return m_installationError;
     }
 }

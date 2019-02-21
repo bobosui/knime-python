@@ -59,115 +59,45 @@ import org.knime.python2.PythonCommand;
  */
 public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfig {
 
-    /**
-     * Configuration key for the path to the conda executable.
-     */
-    public static final String CFG_KEY_CONDA_EXECUTABLE_PATH = "condaExecutable";
+    private final SettingsModelString m_environmentName;
 
-    /**
-     * Configuration key for the Python 2 conda environment.
-     */
-    public static final String CFG_KEY_PYTHON2_CONDA_ENV_NAME = "python2CondaEnvironmentName";
-
-    /**
-     * Configuration key for the Python 3 conda environment.
-     */
-    public static final String CFG_KEY_PYTHON3_CONDA_ENV_NAME = "python3CondaEnvironmentName";
-
-    /**
-     * Use command 'conda' without a specified location by default.
-     */
-    public static final String DEFAULT_CONDA_EXECUTABLE_PATH = "conda";
-
-    /**
-     * Use no environment by default.
-     */
-    public static final String PLACEHOLDER_PYTHON2_CONDA_ENV_NAME = "<no environment>";
-
-    /**
-     * Use no environment by default.
-     */
-    public static final String PLACEHOLDER_PYTHON3_CONDA_ENV_NAME = "<no environment>";
-
-    private final SettingsModelString m_condaExecutable =
-        new SettingsModelString(CFG_KEY_CONDA_EXECUTABLE_PATH, DEFAULT_CONDA_EXECUTABLE_PATH);
-
-    private final SettingsModelString m_python2Environment =
-        new SettingsModelString(CFG_KEY_PYTHON2_CONDA_ENV_NAME, PLACEHOLDER_PYTHON2_CONDA_ENV_NAME);
-
-    private final SettingsModelString m_python3Environment =
-        new SettingsModelString(CFG_KEY_PYTHON3_CONDA_ENV_NAME, PLACEHOLDER_PYTHON3_CONDA_ENV_NAME);
+    private final SettingsModelString m_condaExecutable;
 
     // Not meant for saving/loading. We just want observable values here to communicate with the view:
 
     private static final String DUMMY_CFG_KEY = "dummy";
 
-    private final SettingsModelString m_condaInstallationInfo = new SettingsModelString(DUMMY_CFG_KEY, "");
-
-    private final SettingsModelString m_condaInstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
-
-    private final SettingsModelStringArray m_python2AvailableEnvironments =
-        new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{PLACEHOLDER_PYTHON2_CONDA_ENV_NAME});
-
-    private final SettingsModelStringArray m_python3AvailableEnvironments =
-        new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{PLACEHOLDER_PYTHON3_CONDA_ENV_NAME});
+    private final SettingsModelStringArray m_pythonAvailableEnvironments;
 
     /**
-     * @return The path to the conda executable.
+     * @param configKey The identifier of this config. Used for saving/loading.
+     * @param defaultEnvironmentName The initial Conda environment name.
+     * @param condaExecutable The settings model that specifies the Conda executable command.
      */
-    public SettingsModelString getCondaExecutablePath() {
-        return m_condaExecutable;
+    public CondaEnvironmentConfig(final String configKey, final String defaultEnvironmentName,
+        final SettingsModelString condaExecutable) {
+        m_environmentName = new SettingsModelString(configKey, defaultEnvironmentName);
+        m_pythonAvailableEnvironments =
+            new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{defaultEnvironmentName});
+        m_condaExecutable = condaExecutable;
     }
 
     /**
-     * @return The installation status message of the conda executable. Not meant for saving/loading.
+     * @return The name of the Python Conda environment.
      */
-    public SettingsModelString getCondaInstallationInfo() {
-        return m_condaInstallationInfo;
+    public SettingsModelString getEnvironmentName() {
+        return m_environmentName;
     }
 
     /**
-     * @return The installation error message of the conda executable. Not meant for saving/loading.
+     * @return The list of currently available Python Conda environments. Not meant for saving/loading.
      */
-    public SettingsModelString getCondaInstallationError() {
-        return m_condaInstallationError;
-    }
-
-    /**
-     * @return The name of the Python 2 conda environment.
-     */
-    public SettingsModelString getPython2EnvironmentName() {
-        return m_python2Environment;
-    }
-
-    /**
-     * @return The list of currently available Python 2 conda environments. Not meant for saving/loading.
-     */
-    public SettingsModelStringArray getPython2AvailableEnvironments() {
-        return m_python2AvailableEnvironments;
+    public SettingsModelStringArray getAvailableEnvironmentNames() {
+        return m_pythonAvailableEnvironments;
     }
 
     @Override
-    public PythonCommand getPython2Command() {
-        return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_python2Environment.getStringValue());
-    }
-
-    /**
-     * @return The name of the Python 3 conda environment.
-     */
-    public SettingsModelString getPython3EnvironmentName() {
-        return m_python3Environment;
-    }
-
-    /**
-     * @return The list of currently available Python 3 conda environments. Not meant for saving/loading.
-     */
-    public SettingsModelStringArray getPython3AvailableEnvironments() {
-        return m_python3AvailableEnvironments;
-    }
-
-    @Override
-    public PythonCommand getPython3Command() {
-        return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_python3Environment.getStringValue());
+    public PythonCommand getPythonCommand() {
+        return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_environmentName.getStringValue());
     }
 }
