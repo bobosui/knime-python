@@ -82,13 +82,15 @@ final class PreferenceWrappingConfigStorage implements PythonConfigStorage {
     @Override
     public void loadBooleanModel(final SettingsModelBoolean model) {
         loadEnabled(model.getConfigName(), model);
-        m_preferences.readBoolean(model.getConfigName(), model.getBooleanValue());
+        final boolean value = m_preferences.readBoolean(model.getConfigName(), model.getBooleanValue());
+        model.setBooleanValue(value);
     }
 
     @Override
     public void loadStringModel(final SettingsModelString model) {
         loadEnabled(model.getKey(), model);
-        m_preferences.readString(model.getKey(), model.getStringValue());
+        final String value = m_preferences.readString(model.getKey(), model.getStringValue());
+        model.setStringValue(value);
     }
 
     private void saveEnabled(final String modelKey, final SettingsModel model) {

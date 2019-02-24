@@ -73,7 +73,10 @@ final class InstallationStatusDisplayPanel extends Composite {
     public InstallationStatusDisplayPanel(final SettingsModelString infoMessageModel,
         final SettingsModelString errorMessageModel, final Composite parent) {
         super(parent, SWT.NONE);
-        setLayout(new GridLayout());
+        final GridLayout gridLayout = new GridLayout();
+        gridLayout.marginWidth = 0;
+        gridLayout.marginHeight = 0;
+        setLayout(gridLayout);
 
         // Info label:
         final Label info = new Label(this, SWT.NONE);
@@ -97,8 +100,10 @@ final class InstallationStatusDisplayPanel extends Composite {
         final String finalText = text != null ? text : "";
         try {
             label.getDisplay().syncExec(() -> {
-                label.setText(finalText);
-                layout();
+                if (!label.isDisposed()) {
+                    label.setText(finalText);
+                    layout();
+                }
             });
         } catch (final SWTException ex) {
             // Display or control have been disposed - ignore.

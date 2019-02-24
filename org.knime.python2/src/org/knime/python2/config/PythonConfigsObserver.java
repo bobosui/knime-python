@@ -105,6 +105,10 @@ public final class PythonConfigsObserver {
         m_manualEnvironmentsConfig = manualEnvironmentsConfig;
         m_serializerConfig = serializerConfig;
 
+        // Initialize view-model of default Python environment (since this was/is not persisted):
+
+        updateDefaultPythonEnvironment();
+
         // Update default environment on version change.
         versionConfig.getPythonVersion().addChangeListener(e -> updateDefaultPythonEnvironment());
 

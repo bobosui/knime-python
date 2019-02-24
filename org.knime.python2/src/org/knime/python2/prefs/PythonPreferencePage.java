@@ -170,8 +170,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         m_manualEnvironmentPanel =
             new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, m_environmentConfigurationPanel);
 
-        displayPanelForEnvironmentType(PythonEnvironmentType.CONDA.getId());
-
         // Serializer selection:
 
         final SerializerConfig serializerConfig = new SerializerConfig();
@@ -180,9 +178,13 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         @SuppressWarnings("unused")
         Object unused2 = new SerializerPreferencePanel(serializerConfig, m_container);
 
-        // Load saved configs from preferences:
+        // Load saved configs from preferences and initialize initial view:
 
         loadConfigurations();
+
+        displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue());
+
+        updateDisplayMinSize();
 
         // Hooks:
 

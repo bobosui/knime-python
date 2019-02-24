@@ -108,7 +108,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
         final InstallationStatusDisplayPanel statusDisplay =
             new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
         gridData = new GridData();
-        gridData.verticalIndent = 20;
+        gridData.verticalIndent = 10;
         gridData.horizontalSpan = 2;
         statusDisplay.setLayoutData(gridData);
 
