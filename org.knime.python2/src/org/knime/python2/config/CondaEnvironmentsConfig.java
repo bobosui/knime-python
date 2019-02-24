@@ -48,6 +48,8 @@
  */
 package org.knime.python2.config;
 
+import java.nio.file.Paths;
+
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
@@ -102,7 +104,13 @@ public final class CondaEnvironmentsConfig implements PythonEnvironmentsConfig {
      * @return The default value for the Conda installation directory path config entry.
      */
     public static String getDefaultCondaInstallationDirectory() {
-        return "";
+        String defaultInstallationDirectory = "";
+        try {
+            defaultInstallationDirectory = Paths.get(System.getProperty("user.home"), "anaconda3").toString();
+        } catch (Exception ex) {
+            // Ignore and stick with empty default.
+        }
+        return defaultInstallationDirectory;
     }
 
     /**

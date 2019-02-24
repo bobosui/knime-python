@@ -160,6 +160,7 @@ public final class Conda {
             }
         } // Else just stick with the command string.
 
+        // TODO: Make robust and/or nice error message (+ make it an IOException)!
         m_command = getCommandFromInstallationDirectoryForOS(condaInstallationDirectoryPath);
 
         testInstallation();
