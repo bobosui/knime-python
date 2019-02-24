@@ -52,7 +52,7 @@ package org.knime.python2.config;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public interface PythonEnvironmentsConfig {
+public interface PythonEnvironmentsConfig extends PythonConfig {
 
     /**
      * @return The config for the Python 2 environment.

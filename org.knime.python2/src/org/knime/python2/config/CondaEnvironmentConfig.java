@@ -61,7 +61,9 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
 
     private final SettingsModelString m_environmentName;
 
-    private final SettingsModelString m_condaExecutable;
+    // Not managed by this config. Only needed to create command object.
+
+    private final SettingsModelString m_condaDirectory;
 
     // Not meant for saving/loading. We just want observable values here to communicate with the view:
 
@@ -72,14 +74,15 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
     /**
      * @param configKey The identifier of this config. Used for saving/loading.
      * @param defaultEnvironmentName The initial Conda environment name.
-     * @param condaExecutable The settings model that specifies the Conda executable command.
+     * @param condaDirectory The settings model that specifies the Conda installation directory. Not saved/loaded or
+     *            otherwise managed by this config.
      */
     public CondaEnvironmentConfig(final String configKey, final String defaultEnvironmentName,
-        final SettingsModelString condaExecutable) {
+        final SettingsModelString condaDirectory) {
         m_environmentName = new SettingsModelString(configKey, defaultEnvironmentName);
         m_pythonAvailableEnvironments =
             new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{defaultEnvironmentName});
-        m_condaExecutable = condaExecutable;
+        m_condaDirectory = condaDirectory;
     }
 
     /**
@@ -98,6 +101,16 @@ public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfi
 
     @Override
     public PythonCommand getPythonCommand() {
-        return Conda.createPythonCommand(m_condaExecutable.getStringValue(), m_environmentName.getStringValue());
+        return Conda.createPythonCommand(m_condaDirectory.getStringValue(), m_environmentName.getStringValue());
+    }
+
+    @Override
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        storage.saveStringModel(m_environmentName);
+    }
+
+    @Override
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        storage.loadStringModel(m_environmentName);
     }
 }

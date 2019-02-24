@@ -48,26 +48,20 @@
  */
 package org.knime.python2.config;
 
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractManualEnvironmentPanel<W> extends AbstractPythonConfigPanel<ManualEnvironmentConfig, W> {
+public abstract class AbstractManualEnvironmentPanel<W> extends AbstractPythonConfigPanel<ManualEnvironmentsConfig, W> {
 
-    public AbstractManualEnvironmentPanel(final ManualEnvironmentConfig config, final W parent) {
+    public AbstractManualEnvironmentPanel(final ManualEnvironmentsConfig config, final W parent) {
         super(config, parent);
         final W panel = getPanel();
-        createPython2PathWidget(config.getExecutablePath(), config.getPythonInstallationInfo(),
-            config.getPythonInstallationError(), panel);
-        createPython3PathWidget(config.getPython3Path(), config.getPython3InstallationInfo(),
-            config.getPython3InstallationError(), panel);
+        createPython2PathWidget(config.getPython2Config(), panel);
+        createPython3PathWidget(config.getPython3Config(), panel);
     }
 
-    protected abstract void createPython2PathWidget(SettingsModelString python2Path,
-        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage, W panel);
+    protected abstract void createPython2PathWidget(ManualEnvironmentConfig python2Config, W panel);
 
-    protected abstract void createPython3PathWidget(SettingsModelString python2Path,
-        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage, W panel);
+    protected abstract void createPython3PathWidget(ManualEnvironmentConfig python2Config, W panel);
 }

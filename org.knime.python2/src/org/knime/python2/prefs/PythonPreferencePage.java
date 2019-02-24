@@ -76,12 +76,14 @@ import org.eclipse.ui.PlatformUI;
 import org.knime.core.node.NodeLogger;
 import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
 import org.knime.python2.PythonVersion;
-import org.knime.python2.config.CondaEnvironmentConfig;
-import org.knime.python2.config.EnvironmentTypeConfig;
-import org.knime.python2.config.ManualEnvironmentConfig;
+import org.knime.python2.config.CondaEnvironmentsConfig;
+import org.knime.python2.config.ManualEnvironmentsConfig;
+import org.knime.python2.config.PythonConfig;
+import org.knime.python2.config.PythonConfigStorage;
 import org.knime.python2.config.PythonEnvironmentConfigObserver;
 import org.knime.python2.config.PythonEnvironmentConfigObserver.PythonEnvironmentConfigTestStatusListener;
 import org.knime.python2.config.PythonEnvironmentType;
+import org.knime.python2.config.PythonEnvironmentTypeConfig;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
 
@@ -100,7 +102,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
     private Composite m_container;
 
-    private List<PreferencePersistor> m_preferencePersistors;
+    private List<PythonConfig> m_configs;
 
     private Composite m_environmentConfigurationPanel;
 
@@ -122,15 +124,15 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         createPageBody(parent);
         createInfoHeader(parent);
 
-        m_preferencePersistors = new ArrayList<>(4);
+        m_configs = new ArrayList<>(5);
 
         // Python version selection:
 
         final PythonVersionConfig pythonVersionConfig = new PythonVersionConfig();
+        m_configs.add(pythonVersionConfig);
         // Reference to object is not needed here; everything is handled in its constructor.
         @SuppressWarnings("unused")
         final Object unused0 = new PythonVersionPreferencePanel(pythonVersionConfig, m_container);
-        m_preferencePersistors.add(new PythonVersionPreferencePersistor(pythonVersionConfig));
 
         // Environment configuration:
 
@@ -141,7 +143,8 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Environment type selection:
 
-        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
+        final PythonEnvironmentTypeConfig environmentTypeConfig = new PythonEnvironmentTypeConfig();
+        m_configs.add(environmentTypeConfig);
         // Reference to object is not needed here; everything is handled in its constructor.
         @SuppressWarnings("unused")
         final Object unused1 = new EnvironmentTypePreferencePanel(environmentTypeConfig, environmentConfigurationGroup);
@@ -155,27 +158,27 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Conda environment configuration:
 
-        final CondaEnvironmentConfig condaEnvironmentConfig = new CondaEnvironmentConfig();
+        final CondaEnvironmentsConfig condaEnvironmentConfig = new CondaEnvironmentsConfig();
+        m_configs.add(condaEnvironmentConfig);
         m_condaEnvironmentPanel =
             new CondaEnvironmentPreferencePanel(condaEnvironmentConfig, m_environmentConfigurationPanel);
-        m_preferencePersistors.add(new CondaEnvironmentPreferencePersistor(condaEnvironmentConfig));
 
         // Manual environment configuration:
 
-        final ManualEnvironmentConfig manualEnvironmentConfig = new ManualEnvironmentConfig();
+        final ManualEnvironmentsConfig manualEnvironmentConfig = new ManualEnvironmentsConfig();
+        m_configs.add(manualEnvironmentConfig);
         m_manualEnvironmentPanel =
             new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, m_environmentConfigurationPanel);
-        m_preferencePersistors.add(new ManualEnvironmentPreferencePersistor(manualEnvironmentConfig));
 
         displayPanelForEnvironmentType(PythonEnvironmentType.CONDA.getId());
 
         // Serializer selection:
 
         final SerializerConfig serializerConfig = new SerializerConfig();
+        m_configs.add(serializerConfig);
         // Reference to object is not needed here; everything is handled in its constructor.
         @SuppressWarnings("unused")
         Object unused2 = new SerializerPreferencePanel(serializerConfig, m_container);
-        m_preferencePersistors.add(new SerializerPreferencePersistor(serializerConfig));
 
         // Load saved configs from preferences:
 
@@ -266,24 +269,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         });
     }
 
-    private static void displayDefaultPythonEnvironment(final ManualEnvironmentPreferencePanel environmentPanel,
-        final String pythonVersion) {
-        final PythonPathEditor pythonPathEditorToSetDefault;
-        final PythonPathEditor pythonPathEditorToUnsetDefault;
-        if (PythonVersion.PYTHON2.getId().equals(pythonVersion)) {
-            pythonPathEditorToSetDefault = environmentPanel.getPython2PathEditor();
-            pythonPathEditorToUnsetDefault = environmentPanel.getPython3PathEditor();
-        } else if (PythonVersion.PYTHON3.getId().equals(pythonVersion)) {
-            pythonPathEditorToSetDefault = environmentPanel.getPython3PathEditor();
-            pythonPathEditorToUnsetDefault = environmentPanel.getPython2PathEditor();
-        } else {
-            throw new IllegalStateException("Selected default Python version is neither Python 2 nor Python3. "
-                + "This is an implementation error.");
-        }
-        pythonPathEditorToSetDefault.setDisplayAsDefault(true);
-        pythonPathEditorToUnsetDefault.setDisplayAsDefault(false);
-    }
-
     private void displayPanelForEnvironmentType(final String environmentTypeId) {
         final PythonEnvironmentType environmentType = PythonEnvironmentType.fromId(environmentTypeId);
         if (PythonEnvironmentType.CONDA.equals(environmentType)) {
@@ -324,9 +309,9 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
     @Override
     protected void performDefaults() {
-        final PreferenceStorage defaultPreferences = PythonPreferences.DEFAULT;
-        for (final PreferencePersistor persistor : m_preferencePersistors) {
-            persistor.loadSettingsFrom(defaultPreferences);
+        final PythonConfigStorage defaultPreferences = PythonPreferences.DEFAULT;
+        for (final PythonConfig config : m_configs) {
+            config.loadConfigFrom(defaultPreferences);
         }
     }
 
@@ -334,9 +319,9 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
      * Saves the preference page's configurations to the preferences.
      */
     private void saveConfigurations() {
-        final PreferenceStorage currentPreferences = PythonPreferences.CURRENT;
-        for (final PreferencePersistor persistor : m_preferencePersistors) {
-            persistor.saveSettingsTo(currentPreferences);
+        final PythonConfigStorage currentPreferences = PythonPreferences.CURRENT;
+        for (final PythonConfig config : m_configs) {
+            config.saveConfigTo(currentPreferences);
         }
     }
 
@@ -344,9 +329,9 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
      * Loads the preference page's configuration from the stored preferences.
      */
     private void loadConfigurations() {
-        final PreferenceStorage currentPreferences = PythonPreferences.CURRENT;
-        for (final PreferencePersistor persistor : m_preferencePersistors) {
-            persistor.loadSettingsFrom(currentPreferences);
+        final PythonConfigStorage currentPreferences = PythonPreferences.CURRENT;
+        for (final PythonConfig config : m_configs) {
+            config.loadConfigFrom(currentPreferences);
         }
     }
 }

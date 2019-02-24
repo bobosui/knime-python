@@ -49,12 +49,13 @@
 package org.knime.python2.config;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtension;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class SerializerConfig {
+public final class SerializerConfig implements PythonConfig {
 
     /**
      * Configuration key for the serializer.
@@ -68,7 +69,20 @@ public final class SerializerConfig {
 
     private final SettingsModelString m_serializer = new SettingsModelString(CFG_KEY_SERIALIZER, DEFAULT_SERIALIZER);
 
+    /**
+     * @return The {@link SerializationLibraryExtension#getId() id} of the configured serializer.
+     */
     public SettingsModelString getSerializer() {
         return m_serializer;
+    }
+
+    @Override
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        storage.saveStringModel(m_serializer);
+    }
+
+    @Override
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        storage.loadStringModel(m_serializer);
     }
 }

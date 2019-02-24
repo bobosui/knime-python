@@ -46,9 +46,10 @@
 package org.knime.python2.prefs;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.knime.python2.config.CondaEnvironmentConfig;
-import org.knime.python2.config.EnvironmentTypeConfig;
-import org.knime.python2.config.ManualEnvironmentConfig;
+import org.knime.python2.config.CondaEnvironmentsConfig;
+import org.knime.python2.config.ManualEnvironmentsConfig;
+import org.knime.python2.config.PythonConfigStorage;
+import org.knime.python2.config.PythonEnvironmentTypeConfig;
 import org.knime.python2.config.PythonVersionConfig;
 import org.knime.python2.config.SerializerConfig;
 
@@ -63,21 +64,21 @@ public final class PythonPreferencesInitializer extends AbstractPreferenceInitia
 
     @Override
     public void initializeDefaultPreferences() {
-        final PreferenceStorage defaultPreferences = PythonPreferences.DEFAULT;
+        final PythonConfigStorage defaultPreferences = PythonPreferences.DEFAULT;
 
         final PythonVersionConfig defaultDefaultVersionConfig = new PythonVersionConfig();
-        new PythonVersionPreferencePersistor(defaultDefaultVersionConfig).saveSettingsTo(defaultPreferences);
+        defaultDefaultVersionConfig.saveConfigTo(defaultPreferences);
 
-        final EnvironmentTypeConfig environmentTypeConfig = new EnvironmentTypeConfig();
-        new EnvironmentTypePreferencePersistor(environmentTypeConfig).saveSettingsTo(defaultPreferences);
+        final PythonEnvironmentTypeConfig environmentTypeConfig = new PythonEnvironmentTypeConfig();
+        environmentTypeConfig.saveConfigTo(defaultPreferences);
 
-        final CondaEnvironmentConfig defaultCondaEnvConfig = new CondaEnvironmentConfig();
-        new CondaEnvironmentPreferencePersistor(defaultCondaEnvConfig).saveSettingsTo(defaultPreferences);
+        final CondaEnvironmentsConfig defaultCondaEnvConfig = new CondaEnvironmentsConfig();
+        defaultCondaEnvConfig.saveConfigTo(defaultPreferences);
 
-        final ManualEnvironmentConfig defaultManualEnvConfig = new ManualEnvironmentConfig();
-        new ManualEnvironmentPreferencePersistor(defaultManualEnvConfig).saveSettingsTo(defaultPreferences);
+        final ManualEnvironmentsConfig defaultManualEnvConfig = new ManualEnvironmentsConfig();
+        defaultManualEnvConfig.saveConfigTo(defaultPreferences);
 
         final SerializerConfig defaultSerializerConfig = new SerializerConfig();
-        new SerializerPreferencePersistor(defaultSerializerConfig).saveSettingsTo(defaultPreferences);
+        defaultSerializerConfig.saveConfigTo(defaultPreferences);
     }
 }

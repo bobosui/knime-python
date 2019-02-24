@@ -44,33 +44,27 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 25, 2019 (marcel): created
+ *   Feb 24, 2019 (marcel): created
  */
-package org.knime.python2.prefs;
-
-import org.knime.python2.config.SerializerConfig;
-import org.knime.python2.prefs.PreferencePersistor.AbstractPreferencePersistor;
+package org.knime.python2.config;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
- * @author Christian Dietz, KNIME GmbH, Konstanz, German
+ * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class SerializerPreferencePersistor extends AbstractPreferencePersistor<SerializerConfig> {
+public interface PythonConfig {
 
     /**
-     * @param config The configuration to save or load.
+     * Saves this config to the given storage.
+     *
+     * @param storage The storage to which to safe this config.
      */
-    public SerializerPreferencePersistor(final SerializerConfig config) {
-        super(config);
-    }
+    void saveConfigTo(PythonConfigStorage storage);
 
-    @Override
-    public void saveSettingsTo(final PreferenceStorage storage) {
-        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getSerializer(), storage);
-    }
-
-    @Override
-    public void loadSettingsFrom(final PreferenceStorage storage) {
-        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getSerializer(), storage);
-    }
+    /**
+     * Loads this config from the given storage.
+     *
+     * @param storage The storage from which to load this config.
+     */
+    void loadConfigFrom(PythonConfigStorage storage);
 }

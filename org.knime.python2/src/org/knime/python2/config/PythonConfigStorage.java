@@ -44,38 +44,24 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 21, 2019 (marcel): created
+ *   Feb 24, 2019 (marcel): created
  */
 package org.knime.python2.config;
+
+import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
+import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
- * @param <P> The type of the Python environment configs held by this class.
  */
-public abstract class AbstractPythonEnvironmentsConfig<P extends PythonEnvironmentConfig>
-    implements PythonEnvironmentsConfig {
+public interface PythonConfigStorage {
 
-    private P m_python2EnvironmentConfig;
+    void saveBooleanModel(SettingsModelBoolean model);
 
-    private P m_python3EnvironmentConfig;
+    void saveStringModel(SettingsModelString model);
 
-    /**
-     * @param python2EnvironmentConfig The config object for the Python 2 environment.
-     * @param python3EnvironmentConfig The config object for the Python 3 environment.
-     */
-    public AbstractPythonEnvironmentsConfig(final P python2EnvironmentConfig, final P python3EnvironmentConfig) {
-        m_python2EnvironmentConfig = python2EnvironmentConfig;
-        m_python3EnvironmentConfig = python3EnvironmentConfig;
-    }
+    void loadBooleanModel(SettingsModelBoolean model);
 
-    @Override
-    public PythonEnvironmentConfig getPython2Config() {
-        return m_python2EnvironmentConfig;
-    }
-
-    @Override
-    public PythonEnvironmentConfig getPython3Config() {
-        return m_python3EnvironmentConfig;
-    }
+    void loadStringModel(SettingsModelString model);
 }

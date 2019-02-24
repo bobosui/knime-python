@@ -79,4 +79,14 @@ public final class ManualEnvironmentConfig extends AbstractPythonEnvironmentConf
     public PythonCommand getPythonCommand() {
         return new DefaultPythonCommand(m_pythonPath.getStringValue());
     }
+
+    @Override
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        storage.saveStringModel(m_pythonPath);
+    }
+
+    @Override
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        storage.loadStringModel(m_pythonPath);
+    }
 }

@@ -52,10 +52,10 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.python2.PythonVersion;
 import org.knime.python2.config.AbstractManualEnvironmentPanel;
 import org.knime.python2.config.ManualEnvironmentConfig;
+import org.knime.python2.config.ManualEnvironmentsConfig;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
@@ -63,20 +63,8 @@ import org.knime.python2.config.ManualEnvironmentConfig;
  */
 final class ManualEnvironmentPreferencePanel extends AbstractManualEnvironmentPanel<Composite> {
 
-    private PythonPathEditor m_pythonPath2Editor;
-
-    private PythonPathEditor m_pythonPath3Editor;
-
-    public ManualEnvironmentPreferencePanel(final ManualEnvironmentConfig config, final Composite parent) {
+    public ManualEnvironmentPreferencePanel(final ManualEnvironmentsConfig config, final Composite parent) {
         super(config, parent);
-    }
-
-    public PythonPathEditor getPython2PathEditor() {
-        return m_pythonPath2Editor;
-    }
-
-    public PythonPathEditor getPython3PathEditor() {
-        return m_pythonPath3Editor;
     }
 
     @Override
@@ -87,29 +75,24 @@ final class ManualEnvironmentPreferencePanel extends AbstractManualEnvironmentPa
     }
 
     @Override
-    protected void createPython2PathWidget(final SettingsModelString python2Path,
-        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
-        final Composite panel) {
-        final String python2Name = PythonVersion.PYTHON2.getName();
-        m_pythonPath2Editor = new PythonPathEditor(python2Path, python2Name,
-            "Path to the " + python2Name + " start script", installationInfoMessage, installationErrorMessage, panel);
-        m_pythonPath2Editor.setLayoutData(createPathEditorLayoutData());
+    protected void createPython2PathWidget(final ManualEnvironmentConfig python2Config, final Composite panel) {
+        createPythonPathWidget(PythonVersion.PYTHON2, python2Config, panel);
     }
 
     @Override
-    protected void createPython3PathWidget(final SettingsModelString python3Path,
-        final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
-        final Composite panel) {
-        final String python3Name = PythonVersion.PYTHON3.getName();
-        m_pythonPath3Editor = new PythonPathEditor(python3Path, python3Name,
-            "Path to the " + python3Name + " start script", installationInfoMessage, installationErrorMessage, panel);
-        m_pythonPath3Editor.setLayoutData(createPathEditorLayoutData());
+    protected void createPython3PathWidget(final ManualEnvironmentConfig python3Config, final Composite panel) {
+        createPythonPathWidget(PythonVersion.PYTHON3, python3Config, panel);
     }
 
-    private static GridData createPathEditorLayoutData() {
+    private static void createPythonPathWidget(final PythonVersion pythonVersion,
+        final ManualEnvironmentConfig pythonConfig, final Composite panel) {
+        final String pythonName = pythonVersion.getName();
+        final PythonPathEditor pythonPathEditor = new PythonPathEditor(pythonConfig.getExecutablePath(), pythonName,
+            "Path to the " + pythonName + " start script", pythonConfig.getPythonInstallationInfo(),
+            pythonConfig.getPythonInstallationError(), panel);
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
-        return gridData;
+        pythonPathEditor.setLayoutData(gridData);
     }
 }

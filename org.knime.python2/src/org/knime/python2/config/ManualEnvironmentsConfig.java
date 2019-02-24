@@ -52,7 +52,7 @@ package org.knime.python2.config;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class ManualEnvironmentsConfig extends AbstractPythonEnvironmentsConfig<ManualEnvironmentConfig> {
+public final class ManualEnvironmentsConfig implements PythonEnvironmentsConfig {
 
     /**
      * Configuration key for the path to the Python 2 executable ("environment").
@@ -74,11 +74,31 @@ public final class ManualEnvironmentsConfig extends AbstractPythonEnvironmentsCo
      */
     public static final String DEFAULT_PYTHON3_PATH = "python3";
 
-    /**
-     * Creates a new instance of this manual Python config.
-     */
-    public ManualEnvironmentsConfig() {
-        super(new ManualEnvironmentConfig(CFG_KEY_PYTHON2_PATH, DEFAULT_PYTHON2_PATH),
-            new ManualEnvironmentConfig(CFG_KEY_PYTHON3_PATH, DEFAULT_PYTHON3_PATH));
+    private final ManualEnvironmentConfig m_python2EnvironmentConfig =
+        new ManualEnvironmentConfig(CFG_KEY_PYTHON2_PATH, DEFAULT_PYTHON2_PATH);
+
+    private final ManualEnvironmentConfig m_python3EnvironmentConfig =
+        new ManualEnvironmentConfig(CFG_KEY_PYTHON3_PATH, DEFAULT_PYTHON3_PATH);
+
+    @Override
+    public ManualEnvironmentConfig getPython2Config() {
+        return m_python2EnvironmentConfig;
+    }
+
+    @Override
+    public ManualEnvironmentConfig getPython3Config() {
+        return m_python3EnvironmentConfig;
+    }
+
+    @Override
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        m_python2EnvironmentConfig.saveConfigTo(storage);
+        m_python3EnvironmentConfig.saveConfigTo(storage);
+    }
+
+    @Override
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        m_python2EnvironmentConfig.loadConfigFrom(storage);
+        m_python3EnvironmentConfig.loadConfigFrom(storage);
     }
 }

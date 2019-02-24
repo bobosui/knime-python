@@ -54,27 +54,22 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class CondaEnvironmentsConfig extends AbstractPythonEnvironmentsConfig<CondaEnvironmentConfig> {
+public final class CondaEnvironmentsConfig implements PythonEnvironmentsConfig {
 
     /**
-     * Configuration key for the path to the conda executable.
+     * Configuration key for the path to the Conda installation directory.
      */
-    public static final String CFG_KEY_CONDA_EXECUTABLE_PATH = "condaExecutable";
+    public static final String CFG_KEY_CONDA_DIRECTORY_PATH = "condaInstallationDirectory";
 
     /**
-     * Configuration key for the Python 2 conda environment.
+     * Configuration key for the Python 2 Conda environment.
      */
     public static final String CFG_KEY_PYTHON2_CONDA_ENV_NAME = "python2CondaEnvironmentName";
 
     /**
-     * Configuration key for the Python 3 conda environment.
+     * Configuration key for the Python 3 Conda environment.
      */
     public static final String CFG_KEY_PYTHON3_CONDA_ENV_NAME = "python3CondaEnvironmentName";
-
-    /**
-     * Use command 'conda' without a specified location by default.
-     */
-    public static final String DEFAULT_CONDA_EXECUTABLE_PATH = "conda";
 
     /**
      * Use no environment by default.
@@ -86,8 +81,14 @@ public final class CondaEnvironmentsConfig extends AbstractPythonEnvironmentsCon
      */
     public static final String PLACEHOLDER_PYTHON3_CONDA_ENV_NAME = "<no environment>";
 
-    private final SettingsModelString m_condaExecutable =
-        new SettingsModelString(CFG_KEY_CONDA_EXECUTABLE_PATH, DEFAULT_CONDA_EXECUTABLE_PATH);
+    private final SettingsModelString m_condaDirectory =
+        new SettingsModelString(CFG_KEY_CONDA_DIRECTORY_PATH, getDefaultCondaInstallationDirectory());
+
+    private final CondaEnvironmentConfig m_python2EnvironmentConfig = new CondaEnvironmentConfig(
+        CFG_KEY_PYTHON2_CONDA_ENV_NAME, PLACEHOLDER_PYTHON2_CONDA_ENV_NAME, m_condaDirectory);
+
+    private final CondaEnvironmentConfig m_python3EnvironmentConfig = new CondaEnvironmentConfig(
+        CFG_KEY_PYTHON3_CONDA_ENV_NAME, PLACEHOLDER_PYTHON3_CONDA_ENV_NAME, m_condaDirectory);
 
     // Not meant for saving/loading. We just want observable values here to communicate with the view:
 
@@ -98,34 +99,54 @@ public final class CondaEnvironmentsConfig extends AbstractPythonEnvironmentsCon
     private final SettingsModelString m_condaInstallationError = new SettingsModelString(DUMMY_CFG_KEY, "");
 
     /**
-     * Creates a new instance of a Conda config.
+     * @return The default value for the Conda installation directory path config entry.
      */
-    public CondaEnvironmentsConfig() {
-        super(
-            new CondaEnvironmentConfig(CFG_KEY_PYTHON2_CONDA_ENV_NAME, PLACEHOLDER_PYTHON2_CONDA_ENV_NAME,
-                m_condaExecutable),
-            new CondaEnvironmentConfig(CFG_KEY_PYTHON3_CONDA_ENV_NAME, PLACEHOLDER_PYTHON3_CONDA_ENV_NAME,
-                m_condaExecutable));
+    public static String getDefaultCondaInstallationDirectory() {
+        return "";
     }
 
     /**
-     * @return The path to the conda executable.
+     * @return The path to the Conda installation directory.
      */
-    public SettingsModelString getCondaExecutablePath() {
-        return m_condaExecutable;
+    public SettingsModelString getCondaDirectoryPath() {
+        return m_condaDirectory;
     }
 
     /**
-     * @return The installation status message of the conda executable. Not meant for saving/loading.
+     * @return The installation status message of the local Conda installation. Not meant for saving/loading.
      */
     public SettingsModelString getCondaInstallationInfo() {
         return m_condaInstallationInfo;
     }
 
     /**
-     * @return The installation error message of the conda executable. Not meant for saving/loading.
+     * @return The installation error message of the local Conda installation. Not meant for saving/loading.
      */
     public SettingsModelString getCondaInstallationError() {
         return m_condaInstallationError;
+    }
+
+    @Override
+    public CondaEnvironmentConfig getPython2Config() {
+        return m_python2EnvironmentConfig;
+    }
+
+    @Override
+    public CondaEnvironmentConfig getPython3Config() {
+        return m_python3EnvironmentConfig;
+    }
+
+    @Override
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        storage.saveStringModel(m_condaDirectory);
+        m_python2EnvironmentConfig.saveConfigTo(storage);
+        m_python3EnvironmentConfig.saveConfigTo(storage);
+    }
+
+    @Override
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        storage.loadStringModel(m_condaDirectory);
+        m_python2EnvironmentConfig.loadConfigFrom(storage);
+        m_python3EnvironmentConfig.loadConfigFrom(storage);
     }
 }

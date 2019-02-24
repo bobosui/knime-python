@@ -54,9 +54,9 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractEnvironmentTypePanel<W> extends AbstractPythonConfigPanel<EnvironmentTypeConfig, W> {
+public abstract class AbstractEnvironmentTypePanel<W> extends AbstractPythonConfigPanel<PythonEnvironmentTypeConfig, W> {
 
-    public AbstractEnvironmentTypePanel(final EnvironmentTypeConfig config, final W parent) {
+    public AbstractEnvironmentTypePanel(final PythonEnvironmentTypeConfig config, final W parent) {
         super(config, parent);
         createEnvironmentTypeWidget(config.getEnvironmentType(), getPanel());
     }

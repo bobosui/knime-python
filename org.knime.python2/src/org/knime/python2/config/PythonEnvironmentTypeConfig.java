@@ -44,35 +44,45 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 24, 2019 (marcel): created
+ *   Feb 11, 2019 (marcel): created
  */
-package org.knime.python2.prefs;
+package org.knime.python2.config;
 
-import org.knime.python2.config.ManualEnvironmentConfig;
-import org.knime.python2.prefs.PreferencePersistor.AbstractPreferencePersistor;
+import org.knime.core.node.defaultnodesettings.SettingsModelString;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class ManualEnvironmentPreferencePersistor extends AbstractPreferencePersistor<ManualEnvironmentConfig> {
+public final class PythonEnvironmentTypeConfig implements PythonConfig {
 
     /**
-     * @param config The configuration to save or load.
+     * Configuration key for the selection of conda v. manual environment selection.
      */
-    public ManualEnvironmentPreferencePersistor(final ManualEnvironmentConfig config) {
-        super(config);
+    public static final String CFG_KEY_ENVIRONMENT_TYPE = "environmentType";
+
+    /***
+     * The default selection.
+     */
+    public static final String DEFAULT_ENVIRONMENT_TYPE = PythonEnvironmentType.CONDA.getId();
+
+    private final SettingsModelString m_environmentType =
+        new SettingsModelString(CFG_KEY_ENVIRONMENT_TYPE, DEFAULT_ENVIRONMENT_TYPE);
+
+    /**
+     * @return The {@link PythonEnvironmentType#getId() id} of the configured Python environment type.
+     */
+    public SettingsModelString getEnvironmentType() {
+        return m_environmentType;
     }
 
     @Override
-    public void saveSettingsTo(final PreferenceStorage storage) {
-        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getExecutablePath(), storage);
-        AbstractPreferencePersistor.saveSettingsEntryTo(m_config.getPython3Path(), storage);
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        storage.saveStringModel(m_environmentType);
     }
 
     @Override
-    public void loadSettingsFrom(final PreferenceStorage storage) {
-        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getExecutablePath(), storage);
-        AbstractPreferencePersistor.loadSettingsEntryFrom(m_config.getPython3Path(), storage);
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        storage.loadStringModel(m_environmentType);
     }
 }

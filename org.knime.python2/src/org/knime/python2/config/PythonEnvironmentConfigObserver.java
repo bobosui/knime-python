@@ -76,7 +76,7 @@ public final class PythonEnvironmentConfigObserver {
 
     private CopyOnWriteArrayList<PythonEnvironmentConfigTestStatusListener> m_listeners = new CopyOnWriteArrayList<>();
 
-    private EnvironmentTypeConfig m_environmentTypeConfig;
+    private PythonEnvironmentTypeConfig m_environmentTypeConfig;
 
     private CondaEnvironmentConfig m_condaEnvironmentConfig;
 
@@ -92,7 +92,7 @@ public final class PythonEnvironmentConfigObserver {
      *            observed.
      * @param serializerConfig Serializer configuration. Changes to the serializer are observed.
      */
-    public PythonEnvironmentConfigObserver(final EnvironmentTypeConfig environmentTypeConfig,
+    public PythonEnvironmentConfigObserver(final PythonEnvironmentTypeConfig environmentTypeConfig,
         final CondaEnvironmentConfig condaEnvironmentConfig, final ManualEnvironmentConfig manualEnvironmentConfig,
         final SerializerConfig serializerConfig) {
         m_environmentTypeConfig = environmentTypeConfig;
@@ -104,7 +104,7 @@ public final class PythonEnvironmentConfigObserver {
         environmentTypeConfig.getEnvironmentType().addChangeListener(e -> testSelectedPythonEnvironmentType());
 
         // Refresh and test entire conda config on conda executable change.
-        condaEnvironmentConfig.getCondaExecutablePath().addChangeListener(e -> refreshAndTestCondaConfig());
+        condaEnvironmentConfig.getCondaDirectoryPath().addChangeListener(e -> refreshAndTestCondaConfig());
 
         // Test conda environments on change:
         condaEnvironmentConfig.getEnvironmentName().addChangeListener(e -> testPythonEnvironment(true, false));
@@ -166,7 +166,7 @@ public final class PythonEnvironmentConfigObserver {
             errorMessage.setStringValue("");
             onCondaInstallationTestStarting();
             final String condaVersion =
-                new Conda(m_condaEnvironmentConfig.getCondaExecutablePath().getStringValue()).getVersionString();
+                new Conda(m_condaEnvironmentConfig.getCondaDirectoryPath().getStringValue()).getVersionString();
             infoMessage.setStringValue(condaVersion);
             errorMessage.setStringValue("");
             onCondaInstallationTestFinished("");
@@ -195,7 +195,7 @@ public final class PythonEnvironmentConfigObserver {
             errorMessage = m_condaEnvironmentConfig.getPythonInstallationError();
         }
         try {
-            final Conda conda = new Conda(m_condaEnvironmentConfig.getCondaExecutablePath().getStringValue());
+            final Conda conda = new Conda(m_condaEnvironmentConfig.getCondaDirectoryPath().getStringValue());
             List<String> environments = conda.getEnvironments();
             if (environments.isEmpty()) {
                 environments = Arrays.asList(isPython3 //

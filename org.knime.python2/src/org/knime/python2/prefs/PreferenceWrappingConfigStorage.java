@@ -44,32 +44,59 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 11, 2019 (marcel): created
+ *   Feb 24, 2019 (marcel): created
  */
-package org.knime.python2.config;
+package org.knime.python2.prefs;
 
+import org.knime.core.node.defaultnodesettings.SettingsModel;
+import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.config.PythonConfigStorage;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class EnvironmentTypeConfig {
+final class PreferenceWrappingConfigStorage implements PythonConfigStorage {
 
-    /**
-     * Configuration key for the selection of conda v. manual environment selection.
-     */
-    public static final String CFG_KEY_ENVIRONMENT_TYPE = "environmentType";
+    private static final String CFG_KEY_ENABLED_SUFFIX = "_enabled";
 
-    /***
-     * The default selection.
-     */
-    public static final String DEFAULT_ENVIRONMENT_TYPE = PythonEnvironmentType.CONDA.getId();
+    private final PreferenceStorage m_preferences;
 
-    private final SettingsModelString m_environmentType =
-        new SettingsModelString(CFG_KEY_ENVIRONMENT_TYPE, DEFAULT_ENVIRONMENT_TYPE);
+    public PreferenceWrappingConfigStorage(final PreferenceStorage preferences) {
+        m_preferences = preferences;
+    }
 
-    public SettingsModelString getEnvironmentType() {
-        return m_environmentType;
+    @Override
+    public void saveBooleanModel(final SettingsModelBoolean model) {
+        saveEnabled(model.getConfigName(), model);
+        m_preferences.writeBoolean(model.getConfigName(), model.getBooleanValue());
+    }
+
+    @Override
+    public void saveStringModel(final SettingsModelString model) {
+        saveEnabled(model.getKey(), model);
+        m_preferences.writeString(model.getKey(), model.getStringValue());
+    }
+
+    @Override
+    public void loadBooleanModel(final SettingsModelBoolean model) {
+        loadEnabled(model.getConfigName(), model);
+        m_preferences.readBoolean(model.getConfigName(), model.getBooleanValue());
+    }
+
+    @Override
+    public void loadStringModel(final SettingsModelString model) {
+        loadEnabled(model.getKey(), model);
+        m_preferences.readString(model.getKey(), model.getStringValue());
+    }
+
+    private void saveEnabled(final String modelKey, final SettingsModel model) {
+        m_preferences.writeBoolean(modelKey + CFG_KEY_ENABLED_SUFFIX, model.isEnabled());
+    }
+
+    private void loadEnabled(final String modelKey, final SettingsModel model) {
+        final boolean enabled = m_preferences.readBoolean(modelKey + CFG_KEY_ENABLED_SUFFIX, model.isEnabled());
+        model.setEnabled(enabled);
     }
 }

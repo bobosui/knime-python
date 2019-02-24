@@ -56,7 +56,7 @@ import org.knime.python2.PythonCommand;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public interface PythonEnvironmentConfig {
+public interface PythonEnvironmentConfig extends PythonConfig {
 
     /**
      * @return The command that executes Python in the Python environment configured by this instance.

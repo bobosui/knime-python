@@ -55,7 +55,7 @@ import org.knime.python2.PythonVersion;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class PythonVersionConfig {
+public final class PythonVersionConfig implements PythonConfig {
 
     /**
      * Configuration key for the Python version to use.
@@ -70,7 +70,20 @@ public final class PythonVersionConfig {
     private final SettingsModelString m_pythonVersion =
         new SettingsModelString(CFG_KEY_PYTHON_VERSION, DEFAULT_PYTHON_VERSION);
 
+    /**
+     * @return The {@link PythonVersion#getId() id} of the configured Python version.
+     */
     public SettingsModelString getPythonVersion() {
         return m_pythonVersion;
+    }
+
+    @Override
+    public void saveConfigTo(final PythonConfigStorage storage) {
+        storage.saveStringModel(m_pythonVersion);
+    }
+
+    @Override
+    public void loadConfigFrom(final PythonConfigStorage storage) {
+        storage.loadStringModel(m_pythonVersion);
     }
 }
