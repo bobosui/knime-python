@@ -56,6 +56,7 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -96,7 +97,8 @@ public final class Conda {
 
     /**
      * Creates and returns a {@link PythonCommand} that describes a Python process that is run in the Conda environment
-     * identified by the given Conda installation directory and the given Conda environment name.
+     * identified by the given Conda installation directory and the given Conda environment name.<br>
+     * The validity of the given arguments is not tested.
      *
      * @param condaInstallationDirectoryPath The path to the directory of the Conda installation.
      * @param environmentName The name of the Conda environment.
@@ -126,61 +128,59 @@ public final class Conda {
      *
      * @param condaInstallationDirectoryPath The path to the directory of the Conda installation.
      *
-     * @throws SecurityException If the given directory or any relevant files within that directory cannot be read
-     *             (and/or possibly executed) by this application.
-     * @throws IOException If the given directory does not point to a valid Conda installation.
+     * @throws IOException If the given directory does not point to a valid Conda installation. This includes cases
+     *             where the given directory or any relevant files within that directory cannot be read (and/or possibly
+     *             executed) by this application.
      */
     public Conda(String condaInstallationDirectoryPath) throws IOException {
-        final File directoryFile = tryResolvePath(condaInstallationDirectoryPath);
-
-        // TODO: Revert checks to previous state.
-
-        if (directoryFile != null) {
-            // Command is a regular file. Test whether it's executable and issue a suitable error message if it's not.
-            boolean canExecute = false;
-            try {
-                if (directoryFile.canExecute() || directoryFile.setExecutable(true)) {
-                    canExecute = true;
-                }
-            } catch (SecurityException ex) {
-                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-                canExecute = false;
-            }
-            if (!canExecute) {
-                final SecurityException ex = new SecurityException("The file at the given path cannot be executed. "
-                    + "Make sure to mark it as executable (Mac, Linux) and make sure KNIME has the proper access rights "
-                    + "for the file.");
-                NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
-                throw ex;
-            }
-            try {
-                condaInstallationDirectoryPath = directoryFile.getAbsolutePath();
-            } catch (SecurityException ex) {
-                // Stick with the non-absolute path.
-            }
-        } // Else just stick with the command string.
-
-        // TODO: Make robust and/or nice error message (+ make it an IOException)!
+        final File directoryFile = resolvePathToFile(condaInstallationDirectoryPath);
+        try {
+            condaInstallationDirectoryPath = directoryFile.getAbsolutePath();
+        } catch (SecurityException ex) {
+            // Stick with the non-absolute path.
+            condaInstallationDirectoryPath = directoryFile.getPath();
+        }
         m_command = getCommandFromInstallationDirectoryForOS(condaInstallationDirectoryPath);
 
         testInstallation();
     }
 
-    /**
-     * Try to resolve the conda command to a regular file. Return {@code null} if this fails, indicating that the
-     * command is not a regular file but will be resolved using the operating system's path environment.
-     */
-    private static File tryResolvePath(final String condaCommand) {
-        File condaCommandFile;
+    private static File resolvePathToFile(final String installationDirectoryPath) throws IOException {
+        final File installationDirectory = new File(installationDirectoryPath);
         try {
-            condaCommandFile = new File(condaCommand);
-            if (!condaCommandFile.isFile() || !condaCommandFile.exists()) {
-                condaCommandFile = null;
+            if (!installationDirectory.exists()) {
+                throw new IOException("The directory at the given path does not exist.\nPlease specify the path to "
+                    + "the directory of your local Conda installation.");
             }
-        } catch (Exception ex) {
-            condaCommandFile = null;
+            if (!installationDirectory.isDirectory()) {
+                throw new IOException("The given path does not point to a directory.\nPlease point to the base "
+                    + "directory of your local Conda installation.");
+            }
+        } catch (final SecurityException ex) {
+            final String errorMessage = "The directory at the given path cannot be read. Please make sure KNIME has "
+                + "the proper access rights for the directory and retry.";
+            NodeLogger.getLogger(Conda.class).debug(errorMessage, ex);
+            throw new IOException(errorMessage, ex);
         }
-        return condaCommandFile;
+        return installationDirectory;
+    }
+
+    private static String getCommandFromInstallationDirectoryForOS(final String installationDirectoryPath)
+        throws IOException {
+        final String[] relativePathToExecutableSegments;
+        if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC) {
+            relativePathToExecutableSegments = new String[]{"bin", "conda"};
+        } else if (SystemUtils.IS_OS_WINDOWS) {
+            relativePathToExecutableSegments = new String[]{"Scripts", "conda.exe"};
+        } else {
+            throw createUnknownOSException();
+        }
+        try {
+            return Paths.get(installationDirectoryPath, relativePathToExecutableSegments).toString();
+        } catch (final InvalidPathException ex) {
+            final String errorMessage = ex.getMessage() + "\nThis is an implementation error.";
+            throw new IOException(errorMessage, ex);
+        }
     }
 
     /**
@@ -205,7 +205,7 @@ public final class Conda {
         }
         if (version.compareTo(CONDA_MINIMUM_VERSION) < 0) {
             throw new IOException("Conda version is " + version.toString() + ". Required minimum version is "
-                + CONDA_MINIMUM_VERSION + ". Please update Conda.");
+                + CONDA_MINIMUM_VERSION + ". Please update Conda and retry.");
         }
     }
 
@@ -477,23 +477,11 @@ public final class Conda {
         return osStartScriptFileExtension;
     }
 
-    private static String getCommandFromInstallationDirectoryForOS(final String installationDirectoryPath) {
-        final String osExecutablePath;
-        if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC) {
-            osExecutablePath = Paths.get(installationDirectoryPath, "bin", "conda").toString();
-        } else if (SystemUtils.IS_OS_WINDOWS) {
-            osExecutablePath = Paths.get(installationDirectoryPath, "Scripts", "conda.exe").toString();
-        } else {
-            throw createUnknownOSException();
-        }
-        return osExecutablePath;
-    }
-
     private static UnsupportedOperationException createUnknownOSException() {
         final String osName = SystemUtils.OS_NAME;
         if (osName == null) {
             throw new UnsupportedOperationException(
-                "Could not detect your operating system. This is necessary for conda environment generation and use. "
+                "Could not detect your operating system. This is necessary for Conda environment generation and use. "
                     + "Please make sure KNIME has the proper access rights to your system.");
         } else {
             throw new UnsupportedOperationException(
