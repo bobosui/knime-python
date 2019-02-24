@@ -48,8 +48,10 @@
  */
 package org.knime.python2.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -64,7 +66,7 @@ import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExt
 
 /**
  * Observes Python environment configurations and initiates installation tests as soon as relevant configuration entries
- * change. Clients can subscribe to changes to the status of such installation tests or can manually trigger such tests.
+ * change. Clients can subscribe to changes of the status of such installation tests or can manually trigger such tests.
  * The observer updates all relevant installation status messages in {@link CondaEnvironmentConfig} and/or
  * {@link ManualEnvironmentConfig} as soon as a respective installation test finishes.
  *
@@ -75,6 +77,8 @@ public final class PythonConfigsObserver {
 
     private CopyOnWriteArrayList<PythonEnvironmentConfigTestStatusListener> m_listeners = new CopyOnWriteArrayList<>();
 
+    private PythonVersionConfig m_versionConfig;
+
     private PythonEnvironmentTypeConfig m_environmentTypeConfig;
 
     private CondaEnvironmentsConfig m_condaEnvironmentsConfig;
@@ -84,6 +88,7 @@ public final class PythonConfigsObserver {
     private SerializerConfig m_serializerConfig;
 
     /**
+     * @param versionConfig Python version. Changes to the selected version are observed.
      * @param environmentTypeConfig Environment type. Changes to the selected environment type are observed.
      * @param condaEnvironmentsConfig Conda environment configuration. Changes to the conda directory path as well as to
      *            the Python 2 and Python 3 environments are observed.
@@ -91,16 +96,23 @@ public final class PythonConfigsObserver {
      *            observed.
      * @param serializerConfig Serializer configuration. Changes to the serializer are observed.
      */
-    public PythonConfigsObserver(final PythonEnvironmentTypeConfig environmentTypeConfig,
-        final CondaEnvironmentsConfig condaEnvironmentsConfig, final ManualEnvironmentsConfig manualEnvironmentsConfig,
-        final SerializerConfig serializerConfig) {
+    public PythonConfigsObserver(final PythonVersionConfig versionConfig,
+        final PythonEnvironmentTypeConfig environmentTypeConfig, final CondaEnvironmentsConfig condaEnvironmentsConfig,
+        final ManualEnvironmentsConfig manualEnvironmentsConfig, final SerializerConfig serializerConfig) {
+        m_versionConfig = versionConfig;
         m_environmentTypeConfig = environmentTypeConfig;
         m_condaEnvironmentsConfig = condaEnvironmentsConfig;
         m_manualEnvironmentsConfig = manualEnvironmentsConfig;
         m_serializerConfig = serializerConfig;
 
+        // Update default environment on version change.
+        versionConfig.getPythonVersion().addChangeListener(e -> updateDefaultPythonEnvironment());
+
         // Test all environments of the respective type on environment type change:
-        environmentTypeConfig.getEnvironmentType().addChangeListener(e -> testSelectedPythonEnvironmentType());
+        environmentTypeConfig.getEnvironmentType().addChangeListener(e -> {
+            updateDefaultPythonEnvironment();
+            testSelectedPythonEnvironmentType();
+        });
 
         // Refresh and test entire conda config on conda directory change.
         condaEnvironmentsConfig.getCondaDirectoryPath().addChangeListener(e -> refreshAndTestCondaConfig());
@@ -119,6 +131,41 @@ public final class PythonConfigsObserver {
 
         // Test required external modules of serializer on change:
         serializerConfig.getSerializer().addChangeListener(e -> testSelectedPythonEnvironmentType());
+    }
+
+    private void updateDefaultPythonEnvironment() {
+        final List<PythonEnvironmentConfig> notDefaultEnvironments = new ArrayList<>(4);
+        Collections.addAll(notDefaultEnvironments, m_condaEnvironmentsConfig.getPython2Config(),
+            m_condaEnvironmentsConfig.getPython3Config(), m_manualEnvironmentsConfig.getPython2Config(),
+            m_manualEnvironmentsConfig.getPython3Config());
+
+        final PythonEnvironmentsConfig environmentsOfCurrentType;
+        final PythonEnvironmentType environmentType =
+            PythonEnvironmentType.fromId(m_environmentTypeConfig.getEnvironmentType().getStringValue());
+        if (PythonEnvironmentType.CONDA.equals(environmentType)) {
+            environmentsOfCurrentType = m_condaEnvironmentsConfig;
+        } else if (PythonEnvironmentType.MANUAL.equals(environmentType)) {
+            environmentsOfCurrentType = m_manualEnvironmentsConfig;
+        } else {
+            throw new IllegalStateException("Selected environment type '" + environmentType.getName() + "' is neither "
+                + "conda nor manual. This is an implementation error.");
+        }
+        final PythonEnvironmentConfig defaultEnvironment;
+        final PythonVersion pythonVersion = PythonVersion.fromId(m_versionConfig.getPythonVersion().getStringValue());
+        if (PythonVersion.PYTHON2.equals(pythonVersion)) {
+            defaultEnvironment = environmentsOfCurrentType.getPython2Config();
+        } else if (PythonVersion.PYTHON3.equals(pythonVersion)) {
+            defaultEnvironment = environmentsOfCurrentType.getPython3Config();
+        } else {
+            throw new IllegalStateException("Selected default Python version is neither Python 2 nor Python 3. "
+                + "This is an implementation error.");
+        }
+        notDefaultEnvironments.remove(defaultEnvironment);
+
+        for (final PythonEnvironmentConfig notDefaultEnvironment : notDefaultEnvironments) {
+            notDefaultEnvironment.getIsDefaultPythonEnvironment().setBooleanValue(false);
+        }
+        defaultEnvironment.getIsDefaultPythonEnvironment().setBooleanValue(true);
     }
 
     /**

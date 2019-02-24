@@ -189,7 +189,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         environmentTypeConfig.getEnvironmentType().addChangeListener(
             e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
 
-        m_configObserver = new PythonConfigsObserver(environmentTypeConfig, condaEnvironmentConfig,
+        m_configObserver = new PythonConfigsObserver(pythonVersionConfig, environmentTypeConfig, condaEnvironmentConfig,
             manualEnvironmentConfig, serializerConfig);
 
         // Displaying installation test results may require resizing the scroll view.
