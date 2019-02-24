@@ -52,6 +52,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.python2.PythonVersion;
 import org.knime.python2.config.AbstractManualEnvironmentPanel;
 import org.knime.python2.config.ManualEnvironmentConfig;
@@ -94,5 +95,9 @@ final class ManualEnvironmentPreferencePanel extends AbstractManualEnvironmentPa
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
         pythonPathEditor.setLayoutData(gridData);
+        final SettingsModelBoolean isDefaultEnvironment = pythonConfig.getIsDefaultPythonEnvironment();
+        pythonPathEditor.setDisplayAsDefault(isDefaultEnvironment.getBooleanValue());
+        isDefaultEnvironment
+            .addChangeListener(e -> pythonPathEditor.setDisplayAsDefault(isDefaultEnvironment.getBooleanValue()));
     }
 }

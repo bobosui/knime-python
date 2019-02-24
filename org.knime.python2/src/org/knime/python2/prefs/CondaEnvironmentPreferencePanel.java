@@ -52,6 +52,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.python2.PythonVersion;
 import org.knime.python2.config.AbstractCondaEnvironmentPanel;
@@ -109,5 +110,9 @@ final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPane
         gridData.horizontalAlignment = SWT.FILL;
         gridData.horizontalIndent = 20;
         environmentSelection.setLayoutData(gridData);
+        final SettingsModelBoolean isDefaultEnvironment = pythonConfig.getIsDefaultPythonEnvironment();
+        environmentSelection.setDisplayAsDefault(isDefaultEnvironment.getBooleanValue());
+        isDefaultEnvironment
+            .addChangeListener(e -> environmentSelection.setDisplayAsDefault(isDefaultEnvironment.getBooleanValue()));
     }
 }

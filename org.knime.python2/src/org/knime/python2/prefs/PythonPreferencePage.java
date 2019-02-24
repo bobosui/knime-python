@@ -184,14 +184,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         loadConfigurations();
 
-        displayDefaultPythonEnvironment(m_manualEnvironmentPanel,
-            pythonVersionConfig.getPythonVersion().getStringValue());
-
         // Hooks:
-
-        pythonVersionConfig.getPythonVersion()
-            .addChangeListener(e -> displayDefaultPythonEnvironment(m_manualEnvironmentPanel,
-                pythonVersionConfig.getPythonVersion().getStringValue()));
 
         environmentTypeConfig.getEnvironmentType().addChangeListener(
             e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));

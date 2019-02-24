@@ -132,23 +132,6 @@ final class CondaEnvironmentSelectionBox extends Composite {
         });
     }
 
-    public void setDisplayAsDefault(final boolean setAsDefault) {
-        final String defaultSuffix = " (Default)";
-        final String oldHeaderText = m_header.getText();
-        if (setAsDefault) {
-            if (!oldHeaderText.endsWith(defaultSuffix)) {
-                m_header.setText(oldHeaderText + defaultSuffix);
-                layout();
-            }
-        } else {
-            final int suffixStart = oldHeaderText.indexOf(defaultSuffix);
-            if (suffixStart != -1) {
-                m_header.setText(oldHeaderText.substring(0, suffixStart));
-                layout();
-            }
-        }
-    }
-
     private void setAvailableEnvironments(final String[] availableEnvironments) {
         m_environmentSelection.setItems(availableEnvironments);
     }
@@ -170,5 +153,22 @@ final class CondaEnvironmentSelectionBox extends Composite {
             indexToSelect = 0;
         }
         m_environmentSelection.select(indexToSelect);
+    }
+
+    public void setDisplayAsDefault(final boolean setAsDefault) {
+        final String defaultSuffix = " (Default)";
+        final String oldHeaderText = m_header.getText();
+        if (setAsDefault) {
+            if (!oldHeaderText.endsWith(defaultSuffix)) {
+                m_header.setText(oldHeaderText + defaultSuffix);
+                layout();
+            }
+        } else {
+            final int suffixStart = oldHeaderText.indexOf(defaultSuffix);
+            if (suffixStart != -1) {
+                m_header.setText(oldHeaderText.substring(0, suffixStart));
+                layout();
+            }
+        }
     }
 }

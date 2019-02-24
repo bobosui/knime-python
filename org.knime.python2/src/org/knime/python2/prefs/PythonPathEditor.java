@@ -58,13 +58,11 @@ import org.knime.python2.Activator;
 /**
  * Dialog component that allows to select the path to the executable for a specific Python version.
  *
- * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
+ * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
  */
 final class PythonPathEditor extends Composite {
-
-    private final SettingsModelString m_pathModel;
 
     private final Label m_header;
 
@@ -80,7 +78,6 @@ final class PythonPathEditor extends Composite {
         final SettingsModelString infoMessageModel, final SettingsModelString errorMessageModel,
         final Composite parent) {
         super(parent, SWT.NONE);
-        m_pathModel = pathModel;
 
         final GridLayout gridLayout = new GridLayout();
         gridLayout.numColumns = 3;
@@ -115,13 +112,6 @@ final class PythonPathEditor extends Composite {
         gridData.verticalIndent = 20;
         gridData.horizontalSpan = 2;
         statusDisplay.setLayoutData(gridData);
-    }
-
-    /**
-     * @return The config that holds the path displayed and manipulated by this editor.
-     */
-    public SettingsModelString getPathConfig() {
-        return m_pathModel;
     }
 
     public void setDisplayAsDefault(final boolean setAsDefault) {

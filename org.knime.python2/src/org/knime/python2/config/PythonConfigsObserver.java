@@ -151,7 +151,7 @@ public final class PythonConfigsObserver {
 
         try {
             refreshAvailableCondaEnvironment(false);
-            testPythonEnvironment(true, false); // TODO: We don't want to clear the list of available environments if the test fails!
+            testPythonEnvironment(true, false);
         } catch (Exception ex) {
             clearAvailableCondaEnvironments(false, false);
         }
