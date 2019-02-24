@@ -80,8 +80,8 @@ import org.knime.python2.config.CondaEnvironmentsConfig;
 import org.knime.python2.config.ManualEnvironmentsConfig;
 import org.knime.python2.config.PythonConfig;
 import org.knime.python2.config.PythonConfigStorage;
-import org.knime.python2.config.PythonEnvironmentConfigObserver;
-import org.knime.python2.config.PythonEnvironmentConfigObserver.PythonEnvironmentConfigTestStatusListener;
+import org.knime.python2.config.PythonConfigsObserver;
+import org.knime.python2.config.PythonConfigsObserver.PythonEnvironmentConfigTestStatusListener;
 import org.knime.python2.config.PythonEnvironmentType;
 import org.knime.python2.config.PythonEnvironmentTypeConfig;
 import org.knime.python2.config.PythonVersionConfig;
@@ -112,7 +112,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
     private ManualEnvironmentPreferencePanel m_manualEnvironmentPanel;
 
-    private PythonEnvironmentConfigObserver m_configObserver;
+    private PythonConfigsObserver m_configObserver;
 
     @Override
     public void init(final IWorkbench workbench) {
@@ -196,7 +196,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         environmentTypeConfig.getEnvironmentType().addChangeListener(
             e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
 
-        m_configObserver = new PythonEnvironmentConfigObserver(environmentTypeConfig, condaEnvironmentConfig,
+        m_configObserver = new PythonConfigsObserver(environmentTypeConfig, condaEnvironmentConfig,
             manualEnvironmentConfig, serializerConfig);
 
         // Displaying installation test results may require resizing the scroll view.

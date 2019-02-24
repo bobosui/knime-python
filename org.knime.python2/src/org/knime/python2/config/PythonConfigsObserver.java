@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 import org.knime.python2.Conda;
 import org.knime.python2.PythonCommand;
 import org.knime.python2.PythonKernelTester;
@@ -72,47 +71,51 @@ import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExt
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class PythonEnvironmentConfigObserver {
+public final class PythonConfigsObserver {
 
     private CopyOnWriteArrayList<PythonEnvironmentConfigTestStatusListener> m_listeners = new CopyOnWriteArrayList<>();
 
     private PythonEnvironmentTypeConfig m_environmentTypeConfig;
 
-    private CondaEnvironmentConfig m_condaEnvironmentConfig;
+    private CondaEnvironmentsConfig m_condaEnvironmentsConfig;
 
-    private ManualEnvironmentConfig m_manualEnvironmentConfig;
+    private ManualEnvironmentsConfig m_manualEnvironmentsConfig;
 
     private SerializerConfig m_serializerConfig;
 
     /**
      * @param environmentTypeConfig Environment type. Changes to the selected environment type are observed.
-     * @param condaEnvironmentConfig Conda environment configuration. Changes to the conda executable path as well as to
+     * @param condaEnvironmentsConfig Conda environment configuration. Changes to the conda directory path as well as to
      *            the Python 2 and Python 3 environments are observed.
-     * @param manualEnvironmentConfig Manual environment configuration. Changes to the Python 2 and Python 3 paths are
+     * @param manualEnvironmentsConfig Manual environment configuration. Changes to the Python 2 and Python 3 paths are
      *            observed.
      * @param serializerConfig Serializer configuration. Changes to the serializer are observed.
      */
-    public PythonEnvironmentConfigObserver(final PythonEnvironmentTypeConfig environmentTypeConfig,
-        final CondaEnvironmentConfig condaEnvironmentConfig, final ManualEnvironmentConfig manualEnvironmentConfig,
+    public PythonConfigsObserver(final PythonEnvironmentTypeConfig environmentTypeConfig,
+        final CondaEnvironmentsConfig condaEnvironmentsConfig, final ManualEnvironmentsConfig manualEnvironmentsConfig,
         final SerializerConfig serializerConfig) {
         m_environmentTypeConfig = environmentTypeConfig;
-        m_condaEnvironmentConfig = condaEnvironmentConfig;
-        m_manualEnvironmentConfig = manualEnvironmentConfig;
+        m_condaEnvironmentsConfig = condaEnvironmentsConfig;
+        m_manualEnvironmentsConfig = manualEnvironmentsConfig;
         m_serializerConfig = serializerConfig;
 
         // Test all environments of the respective type on environment type change:
         environmentTypeConfig.getEnvironmentType().addChangeListener(e -> testSelectedPythonEnvironmentType());
 
-        // Refresh and test entire conda config on conda executable change.
-        condaEnvironmentConfig.getCondaDirectoryPath().addChangeListener(e -> refreshAndTestCondaConfig());
+        // Refresh and test entire conda config on conda directory change.
+        condaEnvironmentsConfig.getCondaDirectoryPath().addChangeListener(e -> refreshAndTestCondaConfig());
 
         // Test conda environments on change:
-        condaEnvironmentConfig.getEnvironmentName().addChangeListener(e -> testPythonEnvironment(true, false));
-        condaEnvironmentConfig.getPython3EnvironmentName().addChangeListener(e -> testPythonEnvironment(true, true));
+        condaEnvironmentsConfig.getPython2Config().getEnvironmentName()
+            .addChangeListener(e -> testPythonEnvironment(true, false));
+        condaEnvironmentsConfig.getPython3Config().getEnvironmentName()
+            .addChangeListener(e -> testPythonEnvironment(true, true));
 
         // Test manual environments on change:
-        manualEnvironmentConfig.getExecutablePath().addChangeListener(e -> testPythonEnvironment(false, false));
-        manualEnvironmentConfig.getPython3Path().addChangeListener(e -> testPythonEnvironment(false, true));
+        manualEnvironmentsConfig.getPython2Config().getExecutablePath()
+            .addChangeListener(e -> testPythonEnvironment(false, false));
+        manualEnvironmentsConfig.getPython3Config().getExecutablePath()
+            .addChangeListener(e -> testPythonEnvironment(false, true));
 
         // Test required external modules of serializer on change:
         serializerConfig.getSerializer().addChangeListener(e -> testSelectedPythonEnvironmentType());
@@ -141,32 +144,34 @@ public final class PythonEnvironmentConfigObserver {
         try {
             testCondaExecutable();
         } catch (final Exception ex) {
-            clearAvailableCondaEnvironment(false, true);
-            clearAvailableCondaEnvironment(true, true);
+            clearAvailableCondaEnvironments(false, true);
+            clearAvailableCondaEnvironments(true, true);
+            return;
         }
+
         try {
             refreshAvailableCondaEnvironment(false);
-            testPythonEnvironment(true, false);
+            testPythonEnvironment(true, false); // TODO: We don't want to clear the list of available environments if the test fails!
         } catch (Exception ex) {
-            clearAvailableCondaEnvironment(false, false);
+            clearAvailableCondaEnvironments(false, false);
         }
         try {
             refreshAvailableCondaEnvironment(true);
             testPythonEnvironment(true, true);
         } catch (Exception ex) {
-            clearAvailableCondaEnvironment(true, false);
+            clearAvailableCondaEnvironments(true, false);
         }
     }
 
     private void testCondaExecutable() throws Exception {
-        final SettingsModelString infoMessage = m_condaEnvironmentConfig.getCondaInstallationInfo();
-        final SettingsModelString errorMessage = m_condaEnvironmentConfig.getCondaInstallationError();
+        final SettingsModelString infoMessage = m_condaEnvironmentsConfig.getCondaInstallationInfo();
+        final SettingsModelString errorMessage = m_condaEnvironmentsConfig.getCondaInstallationError();
         try {
             infoMessage.setStringValue("Testing Conda installation...");
             errorMessage.setStringValue("");
             onCondaInstallationTestStarting();
             final String condaVersion =
-                new Conda(m_condaEnvironmentConfig.getCondaDirectoryPath().getStringValue()).getVersionString();
+                new Conda(m_condaEnvironmentsConfig.getCondaDirectoryPath().getStringValue()).getVersionString();
             infoMessage.setStringValue(condaVersion);
             errorMessage.setStringValue("");
             onCondaInstallationTestFinished("");
@@ -179,69 +184,48 @@ public final class PythonEnvironmentConfigObserver {
     }
 
     private void refreshAvailableCondaEnvironment(final boolean isPython3) throws Exception {
-        final SettingsModelString selectedEnvironment;
-        final SettingsModelStringArray availableEnvironments;
-        final SettingsModelString infoMessage;
-        final SettingsModelString errorMessage;
-        if (isPython3) {
-            selectedEnvironment = m_condaEnvironmentConfig.getPython3EnvironmentName();
-            availableEnvironments = m_condaEnvironmentConfig.getPython3AvailableEnvironments();
-            infoMessage = m_condaEnvironmentConfig.getPython3InstallationInfo();
-            errorMessage = m_condaEnvironmentConfig.getPython3InstallationError();
-        } else {
-            selectedEnvironment = m_condaEnvironmentConfig.getEnvironmentName();
-            availableEnvironments = m_condaEnvironmentConfig.getAvailableEnvironmentNames();
-            infoMessage = m_condaEnvironmentConfig.getPythonInstallationInfo();
-            errorMessage = m_condaEnvironmentConfig.getPythonInstallationError();
-        }
+        final CondaEnvironmentConfig condaConfig = isPython3 //
+            ? m_condaEnvironmentsConfig.getPython3Config() //
+            : m_condaEnvironmentsConfig.getPython2Config();
         try {
-            final Conda conda = new Conda(m_condaEnvironmentConfig.getCondaDirectoryPath().getStringValue());
+            final Conda conda = new Conda(m_condaEnvironmentsConfig.getCondaDirectoryPath().getStringValue());
             List<String> environments = conda.getEnvironments();
             if (environments.isEmpty()) {
                 environments = Arrays.asList(isPython3 //
-                    ? CondaEnvironmentConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME //
-                    : CondaEnvironmentConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME);
+                    ? CondaEnvironmentsConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME //
+                    : CondaEnvironmentsConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME);
             }
-            availableEnvironments.setStringArrayValue(environments.toArray(new String[0]));
-            if (!environments.contains(selectedEnvironment.getStringValue())) {
-                selectedEnvironment.setStringValue(environments.get(0));
+            condaConfig.getAvailableEnvironmentNames().setStringArrayValue(environments.toArray(new String[0]));
+            if (!environments.contains(condaConfig.getEnvironmentName().getStringValue())) {
+                condaConfig.getEnvironmentName().setStringValue(environments.get(0));
             }
         } catch (Exception ex) {
-            infoMessage.setStringValue("");
-            errorMessage.setStringValue(ex.getMessage());
+            condaConfig.getPythonInstallationInfo().setStringValue("");
+            condaConfig.getPythonInstallationError().setStringValue(ex.getMessage());
             throw ex;
         }
     }
 
-    private void clearAvailableCondaEnvironment(final boolean isPython3, final boolean clearInstallationMessages) {
-        final SettingsModelString selectedEnvironment;
-        final SettingsModelStringArray availableEnvironments;
-        final SettingsModelString infoMessage;
-        final SettingsModelString errorMessage;
+    private void clearAvailableCondaEnvironments(final boolean isPython3, final boolean clearInstallationMessages) {
+        final CondaEnvironmentConfig condaConfig;
+        final String placeholderEnvironmentName;
         if (isPython3) {
-            selectedEnvironment = m_condaEnvironmentConfig.getPython3EnvironmentName();
-            availableEnvironments = m_condaEnvironmentConfig.getPython3AvailableEnvironments();
-            infoMessage = m_condaEnvironmentConfig.getPython3InstallationInfo();
-            errorMessage = m_condaEnvironmentConfig.getPython3InstallationError();
+            condaConfig = m_condaEnvironmentsConfig.getPython3Config();
+            placeholderEnvironmentName = CondaEnvironmentsConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME;
         } else {
-            selectedEnvironment = m_condaEnvironmentConfig.getEnvironmentName();
-            availableEnvironments = m_condaEnvironmentConfig.getAvailableEnvironmentNames();
-            infoMessage = m_condaEnvironmentConfig.getPythonInstallationInfo();
-            errorMessage = m_condaEnvironmentConfig.getPythonInstallationError();
+            condaConfig = m_condaEnvironmentsConfig.getPython2Config();
+            placeholderEnvironmentName = CondaEnvironmentsConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME;
         }
-        final String placeholderEnvironment = isPython3 //
-            ? CondaEnvironmentConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME //
-            : CondaEnvironmentConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME;
-        availableEnvironments.setStringArrayValue(new String[]{placeholderEnvironment});
-        selectedEnvironment.setStringValue(placeholderEnvironment);
+        condaConfig.getAvailableEnvironmentNames().setStringArrayValue(new String[]{placeholderEnvironmentName});
+        condaConfig.getEnvironmentName().setStringValue(placeholderEnvironmentName);
         if (clearInstallationMessages) {
-            infoMessage.setStringValue("");
-            errorMessage.setStringValue("");
+            condaConfig.getPythonInstallationInfo().setStringValue("");
+            condaConfig.getPythonInstallationError().setStringValue("");
         }
     }
 
     private void testPythonEnvironment(final boolean isConda, final boolean isPython3) {
-        final PythonEnvironmentConfig environmentConfig;
+        final PythonEnvironmentsConfig environmentsConfig;
         final PythonEnvironmentType environmentType;
         boolean doNotTest = false;
         if (isConda) {
@@ -249,27 +233,23 @@ public final class PythonEnvironmentConfigObserver {
                 // We don't want to test the placeholder but just clear the installation status messages and return.
                 doNotTest = true;
             }
-            environmentConfig = m_condaEnvironmentConfig;
+            environmentsConfig = m_condaEnvironmentsConfig;
             environmentType = PythonEnvironmentType.CONDA;
         } else {
-            environmentConfig = m_manualEnvironmentConfig;
+            environmentsConfig = m_manualEnvironmentsConfig;
             environmentType = PythonEnvironmentType.MANUAL;
         }
-        final PythonCommand pythonCommand;
-        final SettingsModelString infoMessage;
-        final SettingsModelString errorMessage;
+        final PythonEnvironmentConfig environmentConfig;
         final PythonVersion pythonVersion;
         if (isPython3) {
-            pythonCommand = environmentConfig.getPython3Command();
-            infoMessage = environmentConfig.getPython3InstallationInfo();
-            errorMessage = environmentConfig.getPython3InstallationError();
+            environmentConfig = environmentsConfig.getPython3Config();
             pythonVersion = PythonVersion.PYTHON3;
         } else {
-            pythonCommand = environmentConfig.getPythonCommand();
-            infoMessage = environmentConfig.getPythonInstallationInfo();
-            errorMessage = environmentConfig.getPythonInstallationError();
+            environmentConfig = environmentsConfig.getPython2Config();
             pythonVersion = PythonVersion.PYTHON2;
         }
+        final SettingsModelString infoMessage = environmentConfig.getPythonInstallationInfo();
+        final SettingsModelString errorMessage = environmentConfig.getPythonInstallationError();
         if (doNotTest) {
             infoMessage.setStringValue("");
             errorMessage.setStringValue("");
@@ -281,6 +261,7 @@ public final class PythonEnvironmentConfigObserver {
         infoMessage.setStringValue("Testing Python environment...");
         errorMessage.setStringValue("");
         onInstallationTestStarting(environmentType, pythonVersion);
+        final PythonCommand pythonCommand = environmentConfig.getPythonCommand();
         new Thread(() -> {
             final PythonKernelTestResult testResult = isPython3 //
                 ? PythonKernelTester.testPython3Installation(pythonCommand, requiredSerializerModules, true) //
@@ -295,11 +276,11 @@ public final class PythonEnvironmentConfigObserver {
         final SettingsModelString condaEnvironmentName;
         final String dummyCondaEnvironmentName;
         if (isPython3) {
-            condaEnvironmentName = m_condaEnvironmentConfig.getPython3EnvironmentName();
-            dummyCondaEnvironmentName = CondaEnvironmentConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME;
+            condaEnvironmentName = m_condaEnvironmentsConfig.getPython3Config().getEnvironmentName();
+            dummyCondaEnvironmentName = CondaEnvironmentsConfig.PLACEHOLDER_PYTHON3_CONDA_ENV_NAME;
         } else {
-            condaEnvironmentName = m_condaEnvironmentConfig.getEnvironmentName();
-            dummyCondaEnvironmentName = CondaEnvironmentConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME;
+            condaEnvironmentName = m_condaEnvironmentsConfig.getPython2Config().getEnvironmentName();
+            dummyCondaEnvironmentName = CondaEnvironmentsConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME;
         }
         return dummyCondaEnvironmentName.equals(condaEnvironmentName.getStringValue());
     }
