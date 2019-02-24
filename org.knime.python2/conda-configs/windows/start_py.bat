@@ -11,5 +11,5 @@ set remaining_arguments=%*
 call set remaining_arguments=%%remaining_arguments:*%2=%%
 
 set PATH=%knime_conda_directory%;%PATH%
-call conda activate %knime_conda_environment% || ECHO Failed to activate conda environment
+call conda activate %knime_conda_environment% || ECHO Failed to activate Conda environment
 python %remaining_arguments%

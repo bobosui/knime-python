@@ -73,7 +73,7 @@ import org.knime.core.node.NodeLogger;
 import org.knime.core.util.Version;
 
 /**
- * Interface to an external {@code conda} process.
+ * Interface to an external Conda installation.
  *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
@@ -95,22 +95,22 @@ public final class Conda {
     private static final String PYTHON3_DESCRIPTION_FILE = "py35_knime.yml";
 
     /**
-     * Creates and returns a {@link PythonCommand} that describes a Python process that is run in a specific conda
-     * environment that is identified by a conda command and an environment name.
+     * Creates and returns a {@link PythonCommand} that describes a Python process that is run in the Conda environment
+     * identified by the given Conda installation directory and the given Conda environment name.
      *
-     * @param condaCommand The {@code conda} command. Could be the path to a conda executable or a command that gets
-     *            properly resolved by the operating system's path environment.
-     * @param environmentName The name of the environment.
-     * @return A command to start a Python process in the given environment using the given conda executable.
+     * @param condaInstallationDirectoryPath The path to the directory of the Conda installation.
+     * @param environmentName The name of the Conda environment.
+     * @return A command to start a Python process in the given environment using the given Conda installation.
      */
-    public static PythonCommand createPythonCommand(final String condaCommand, final String environmentName) {
+    public static PythonCommand createPythonCommand(final String condaInstallationDirectoryPath,
+        final String environmentName) {
         final String osSubDirectory = getConfigSubDirectoryForOS();
         final String osStartScriptFilExtension = getStartScriptFileExtensionForOS();
         final String relativePathToStartScript =
             Paths.get(CONDA_CONFIGS_DIRECTORY, osSubDirectory, "start_py" + "." + osStartScriptFilExtension).toString();
         final String pathToStartScript =
             Activator.getFile(Activator.PLUGIN_ID, relativePathToStartScript).getAbsolutePath();
-        return new DefaultPythonCommand(pathToStartScript, condaCommand, environmentName);
+        return new DefaultPythonCommand(pathToStartScript, condaInstallationDirectoryPath, environmentName);
     }
 
     private final String m_command;
@@ -121,23 +121,25 @@ public final class Conda {
     private String m_rootPrefix = null;
 
     /**
-     * Creates an interface to the given external {@code conda} command. Tests the validity of the given command and
-     * throws an {@link IOException} if it is invalid.
+     * Creates an interface to the given Conda installation. Tests the validity of the installation and throws an
+     * {@link IOException} if it is invalid.
      *
-     * @param condaCommand The {@code conda} command. Could be the path to a conda executable or a command that gets
-     *            properly resolved by the operating system's path environment.
+     * @param condaInstallationDirectoryPath The path to the directory of the Conda installation.
      *
-     * @throws SecurityException If the conda command points to a regular file which cannot be read or executed by this
-     *             application.
-     * @throws IOException If the given command is not a valid conda command.
+     * @throws SecurityException If the given directory or any relevant files within that directory cannot be read
+     *             (and/or possibly executed) by this application.
+     * @throws IOException If the given directory does not point to a valid Conda installation.
      */
-    public Conda(String condaCommand) throws IOException {
-        final File executableFile = tryResolvePath(condaCommand);
-        if (executableFile != null) {
+    public Conda(String condaInstallationDirectoryPath) throws IOException {
+        final File directoryFile = tryResolvePath(condaInstallationDirectoryPath);
+
+        // TODO: Revert checks to previous state.
+
+        if (directoryFile != null) {
             // Command is a regular file. Test whether it's executable and issue a suitable error message if it's not.
             boolean canExecute = false;
             try {
-                if (executableFile.canExecute() || executableFile.setExecutable(true)) {
+                if (directoryFile.canExecute() || directoryFile.setExecutable(true)) {
                     canExecute = true;
                 }
             } catch (SecurityException ex) {
@@ -152,12 +154,13 @@ public final class Conda {
                 throw ex;
             }
             try {
-                condaCommand = executableFile.getAbsolutePath();
+                condaInstallationDirectoryPath = directoryFile.getAbsolutePath();
             } catch (SecurityException ex) {
                 // Stick with the non-absolute path.
             }
         } // Else just stick with the command string.
-        m_command = condaCommand;
+
+        m_command = getCommandFromInstallationDirectoryForOS(condaInstallationDirectoryPath);
 
         testInstallation();
     }
@@ -471,6 +474,18 @@ public final class Conda {
             throw createUnknownOSException();
         }
         return osStartScriptFileExtension;
+    }
+
+    private static String getCommandFromInstallationDirectoryForOS(final String installationDirectoryPath) {
+        final String osExecutablePath;
+        if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC) {
+            osExecutablePath = Paths.get(installationDirectoryPath, "bin", "conda").toString();
+        } else if (SystemUtils.IS_OS_WINDOWS) {
+            osExecutablePath = Paths.get(installationDirectoryPath, "Scripts", "conda.exe").toString();
+        } else {
+            throw createUnknownOSException();
+        }
+        return osExecutablePath;
     }
 
     private static UnsupportedOperationException createUnknownOSException() {
