@@ -58,6 +58,7 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
@@ -113,15 +114,25 @@ final class CondaEnvironmentSelectionBox extends Composite {
 
         // Environment selection:
         final Label environmentSelectionLabel = new Label(this, SWT.NONE);
+        gridData = new GridData();
+        environmentSelectionLabel.setData(gridData);
         environmentSelectionLabel.setText(selectionBoxLabel);
         m_environmentSelection = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
+        gridData = new GridData();
+        m_environmentSelection.setData(gridData);
+
+        // Environment generation:
+        final Button environmentGenerationButton = new Button(this, SWT.NONE);
+        environmentGenerationButton.setText("New...");
+        gridData = new GridData();
+        environmentGenerationButton.setData(gridData);
 
         // Info and error labels:
         final InstallationStatusDisplayPanel statusDisplay =
             new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
         gridData = new GridData();
         gridData.verticalIndent = 10;
-        gridData.horizontalSpan = 2;
+        gridData.horizontalSpan = 3;
         statusDisplay.setLayoutData(gridData);
 
         // Populate and hook environment selection:
@@ -135,6 +146,22 @@ final class CondaEnvironmentSelectionBox extends Composite {
             @Override
             public void widgetSelected(final SelectionEvent e) {
                 environmentModel.setStringValue(getSelectedEnvironment());
+            }
+
+            @Override
+            public void widgetDefaultSelected(final SelectionEvent e) {
+                widgetSelected(e);
+            }
+        });
+
+        // Hook environment generation button:
+        environmentGenerationButton.addSelectionListener(new SelectionListener() {
+
+            @Override
+            public void widgetSelected(final SelectionEvent e) {
+                final CondaEnvironmentGenerationDialog dialog =
+                    new CondaEnvironmentGenerationDialog(CondaEnvironmentSelectionBox.this.getShell());
+                dialog.open();
             }
 
             @Override

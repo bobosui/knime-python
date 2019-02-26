@@ -120,7 +120,7 @@ final class StatusDisplayingFilePathEditor extends Composite {
             new InstallationStatusDisplayPanel(infoMessageModel, errorMessageModel, this);
         gridData = new GridData();
         gridData.verticalIndent = 10;
-        gridData.horizontalSpan = 2;
+        gridData.horizontalSpan = 3;
         statusDisplay.setLayoutData(gridData);
     }
 
