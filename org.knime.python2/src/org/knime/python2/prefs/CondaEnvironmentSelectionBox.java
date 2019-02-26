@@ -48,8 +48,12 @@
  */
 package org.knime.python2.prefs;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
@@ -57,6 +61,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Widget;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 
@@ -68,15 +73,21 @@ final class CondaEnvironmentSelectionBox extends Composite {
 
     private final Label m_header;
 
-    private Combo m_environmentSelection;
+    private final Combo m_environmentSelection;
+
+    private final SettingsModelString m_environmentModel;
 
     /**
-     * @param environmentModel The settings model for the conda environment name.
-     * @param availableEnvironmentsModel The list of available conda environments.
+     * @param environmentModel The settings model for the conda environment name. May be updated asynchronously, that
+     *            is, in a non-UI thread.
+     * @param availableEnvironmentsModel The list of available conda environments. May be updated asynchronously, that
+     *            is, in a non-UI thread.
      * @param selectionBoxLabel The description text for the environment selection box.
      * @param headerLabel The text of the header for the path editor's enclosing group box.
-     * @param infoMessageModel The settings model for the info label.
-     * @param errorMessageModel The settings model for the error label.
+     * @param infoMessageModel The settings model for the info label. May be updated asynchronously, that is, in a
+     *            non-UI thread.
+     * @param errorMessageModel The settings model for the error label. May be updated asynchronously, that is, in a
+     *            non-UI thread.
      * @param parent The parent widget.
      */
     public CondaEnvironmentSelectionBox(final SettingsModelString environmentModel,
@@ -84,6 +95,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
         final String selectionBoxLabel, final SettingsModelString infoMessageModel,
         final SettingsModelString errorMessageModel, final Composite parent) {
         super(parent, SWT.NONE);
+        m_environmentModel = environmentModel;
 
         final GridLayout gridLayout = new GridLayout();
         gridLayout.numColumns = 3;
@@ -133,26 +145,56 @@ final class CondaEnvironmentSelectionBox extends Composite {
     }
 
     private void setAvailableEnvironments(final String[] availableEnvironments) {
-        m_environmentSelection.setItems(availableEnvironments);
+        String selectedEnvironment = m_environmentModel.getStringValue();
+        performActionOnWidgetInUiThread(m_environmentSelection, () -> {
+            m_environmentSelection.setItems(availableEnvironments);
+            layout();
+            return null;
+        });
+        if (selectedEnvironment != null) {
+            setSelectedEnvironment(selectedEnvironment);
+        }
     }
 
     private String getSelectedEnvironment() {
-        return m_environmentSelection.getItem(m_environmentSelection.getSelectionIndex());
+        return performActionOnWidgetInUiThread(m_environmentSelection,
+            () -> m_environmentSelection.getItem(m_environmentSelection.getSelectionIndex()));
     }
 
     private void setSelectedEnvironment(final String environmentName) {
-        final int numEnvironments = m_environmentSelection.getItemCount();
-        int indexToSelect = -1;
-        for (int i = 0; i < numEnvironments; i++) {
-            if (m_environmentSelection.getItem(i).equals(environmentName)) {
-                indexToSelect = i;
-                break;
+        performActionOnWidgetInUiThread(m_environmentSelection, () -> {
+            final int numEnvironments = m_environmentSelection.getItemCount();
+            for (int i = 0; i < numEnvironments; i++) {
+                if (m_environmentSelection.getItem(i).equals(environmentName)) {
+                    m_environmentSelection.select(i);
+                    break;
+                }
             }
+            return null;
+        });
+    }
+
+    private static <T> T performActionOnWidgetInUiThread(final Widget widget, final Callable<T> action) {
+        final AtomicReference<T> returnValue = new AtomicReference<>();
+        final AtomicReference<RuntimeException> exception = new AtomicReference<>();
+        try {
+            widget.getDisplay().syncExec(() -> {
+                if (!widget.isDisposed()) {
+                    try {
+                        final T result = action.call();
+                        returnValue.set(result);
+                    } catch (final Exception ex) {
+                        exception.set(new RuntimeException(ex));
+                    }
+                }
+            });
+        } catch (final SWTException ex) {
+            // Display or control have been disposed - ignore.
         }
-        if (indexToSelect == -1) {
-            indexToSelect = 0;
+        if (exception.get() != null) {
+            throw exception.get();
         }
-        m_environmentSelection.select(indexToSelect);
+        return returnValue.get();
     }
 
     public void setDisplayAsDefault(final boolean setAsDefault) {

@@ -45,7 +45,9 @@
 
 package org.knime.python2.prefs;
 
+import org.eclipse.jface.preference.DirectoryFieldEditor;
 import org.eclipse.jface.preference.FileFieldEditor;
+import org.eclipse.jface.preference.StringButtonFieldEditor;
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -56,27 +58,32 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.python2.Activator;
 
 /**
- * Dialog component that allows to select the path to the executable for a specific Python version.
+ * Dialog component that allows to select the path to a file or directry. Allows to display installation info and error
+ * messages. Is able to display selection as "default".
  *
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  * @author Clemens von Schwerin, KNIME.com, Konstanz, Germany
  */
-final class PythonPathEditor extends Composite {
+final class StatusDisplayingFilePathEditor extends Composite {
 
     private final Label m_header;
 
     /**
-     * @param pathModel The settings model for the path.
+     * @param pathModel The settings model for the file or directory path.
+     * @param isFilePathEditor {@code true} if the editor is for file selection, {@code false} if it is for directory
+     *            selection.
      * @param headerLabel The text of the header for the path editor's enclosing group box.
      * @param editorLabel The description text for the path editor.
-     * @param infoMessageModel The settings model for the info label.
-     * @param errorMessageModel The settings model for the error label.
+     * @param infoMessageModel The settings model for the info label. May be updated asynchronously, that is, in a
+     *            non-UI thread.
+     * @param errorMessageModel The settings model for the error label. May be updated asynchronously, that is, in a
+     *            non-UI thread.
      * @param parent The parent widget.
      */
-    public PythonPathEditor(final SettingsModelString pathModel, final String headerLabel, final String editorLabel,
-        final SettingsModelString infoMessageModel, final SettingsModelString errorMessageModel,
-        final Composite parent) {
+    public StatusDisplayingFilePathEditor(final SettingsModelString pathModel, final boolean isFilePathEditor,
+        final String headerLabel, final String editorLabel, final SettingsModelString infoMessageModel,
+        final SettingsModelString errorMessageModel, final Composite parent) {
         super(parent, SWT.NONE);
 
         final GridLayout gridLayout = new GridLayout();
@@ -94,7 +101,10 @@ final class PythonPathEditor extends Composite {
         m_header.setLayoutData(gridData);
 
         // Path editor:
-        final FileFieldEditor pathEditor = new FileFieldEditor(Activator.PLUGIN_ID, editorLabel, this);
+        final StringButtonFieldEditor pathEditor = isFilePathEditor //
+            ? new FileFieldEditor(Activator.PLUGIN_ID, editorLabel, this) //
+            : new DirectoryFieldEditor(Activator.PLUGIN_ID, editorLabel, this);
+
         pathEditor.setStringValue(pathModel.getStringValue());
         pathModel.addChangeListener(e -> pathEditor.setStringValue(pathModel.getStringValue()));
         pathEditor.getTextControl(this).addListener(SWT.Traverse, event -> {

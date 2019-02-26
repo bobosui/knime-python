@@ -88,9 +88,9 @@ final class ManualEnvironmentPreferencePanel extends AbstractManualEnvironmentPa
     private static void createPythonPathWidget(final PythonVersion pythonVersion,
         final ManualEnvironmentConfig pythonConfig, final Composite panel) {
         final String pythonName = pythonVersion.getName();
-        final PythonPathEditor pythonPathEditor = new PythonPathEditor(pythonConfig.getExecutablePath(), pythonName,
-            "Path to the " + pythonName + " start script", pythonConfig.getPythonInstallationInfo(),
-            pythonConfig.getPythonInstallationError(), panel);
+        final StatusDisplayingFilePathEditor pythonPathEditor = new StatusDisplayingFilePathEditor(
+            pythonConfig.getExecutablePath(), true, pythonName, "Path to the " + pythonName + " start script",
+            pythonConfig.getPythonInstallationInfo(), pythonConfig.getPythonInstallationError(), panel);
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;

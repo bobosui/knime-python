@@ -80,8 +80,9 @@ final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPane
     protected void createCondaDirectoryPathWidget(final SettingsModelString condaDirectoryPath,
         final SettingsModelString installationInfoMessage, final SettingsModelString installationErrorMessage,
         final Composite panel) {
-        final PythonPathEditor directoryPathEditor = new PythonPathEditor(condaDirectoryPath, "Conda",
-            "Path to the Conda installation directory", installationInfoMessage, installationErrorMessage, panel);
+        final StatusDisplayingFilePathEditor directoryPathEditor =
+            new StatusDisplayingFilePathEditor(condaDirectoryPath, false, "Conda",
+                "Path to the Conda installation directory", installationInfoMessage, installationErrorMessage, panel);
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;

@@ -81,7 +81,7 @@ import org.knime.python2.config.ManualEnvironmentsConfig;
 import org.knime.python2.config.PythonConfig;
 import org.knime.python2.config.PythonConfigStorage;
 import org.knime.python2.config.PythonConfigsObserver;
-import org.knime.python2.config.PythonConfigsObserver.PythonEnvironmentConfigTestStatusListener;
+import org.knime.python2.config.PythonConfigsObserver.PythonConfigsTestStatusListener;
 import org.knime.python2.config.PythonEnvironmentType;
 import org.knime.python2.config.PythonEnvironmentTypeConfig;
 import org.knime.python2.config.PythonVersionConfig;
@@ -188,14 +188,14 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Hooks:
 
-        environmentTypeConfig.getEnvironmentType().addChangeListener(
-            e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
-
         m_configObserver = new PythonConfigsObserver(pythonVersionConfig, environmentTypeConfig, condaEnvironmentConfig,
             manualEnvironmentConfig, serializerConfig);
 
+        environmentTypeConfig.getEnvironmentType().addChangeListener(
+            e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
+
         // Displaying installation test results may require resizing the scroll view.
-        m_configObserver.addConfigTestStatusListener(new PythonEnvironmentConfigTestStatusListener() {
+        m_configObserver.addConfigsTestStatusListener(new PythonConfigsTestStatusListener() {
 
             @Override
             public void condaInstallationTestStarting() {
@@ -274,7 +274,7 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
             throw new IllegalStateException(
                 "Selected Python environment type is neither Conda nor manual. This is an implementation error.");
         }
-        m_environmentConfigurationPanel.layout();
+        updateDisplayMinSize();
     }
 
     private void updateDisplayMinSize() {
