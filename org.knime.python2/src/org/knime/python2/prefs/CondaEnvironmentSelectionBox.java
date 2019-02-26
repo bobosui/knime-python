@@ -48,12 +48,10 @@
  */
 package org.knime.python2.prefs;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicReference;
+import static org.knime.python2.prefs.PythonPreferenceUtils.performActionOnWidgetInUiThread;
 
 import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.SWTException;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
@@ -62,7 +60,6 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Widget;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
 
@@ -177,7 +174,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
             m_environmentSelection.setItems(availableEnvironments);
             layout();
             return null;
-        });
+        }, false);
         if (selectedEnvironment != null) {
             setSelectedEnvironment(selectedEnvironment);
         }
@@ -185,7 +182,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
 
     private String getSelectedEnvironment() {
         return performActionOnWidgetInUiThread(m_environmentSelection,
-            () -> m_environmentSelection.getItem(m_environmentSelection.getSelectionIndex()));
+            () -> m_environmentSelection.getItem(m_environmentSelection.getSelectionIndex()), false);
     }
 
     private void setSelectedEnvironment(final String environmentName) {
@@ -198,30 +195,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
                 }
             }
             return null;
-        });
-    }
-
-    private static <T> T performActionOnWidgetInUiThread(final Widget widget, final Callable<T> action) {
-        final AtomicReference<T> returnValue = new AtomicReference<>();
-        final AtomicReference<RuntimeException> exception = new AtomicReference<>();
-        try {
-            widget.getDisplay().syncExec(() -> {
-                if (!widget.isDisposed()) {
-                    try {
-                        final T result = action.call();
-                        returnValue.set(result);
-                    } catch (final Exception ex) {
-                        exception.set(new RuntimeException(ex));
-                    }
-                }
-            });
-        } catch (final SWTException ex) {
-            // Display or control have been disposed - ignore.
-        }
-        if (exception.get() != null) {
-            throw exception.get();
-        }
-        return returnValue.get();
+        }, false);
     }
 
     public void setDisplayAsDefault(final boolean setAsDefault) {

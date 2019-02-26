@@ -505,14 +505,25 @@ public final class Conda {
          */
         protected abstract void handlePackageDownloadProgress(final String currentPackage, final double progress);
 
+        /**
+         * Asynchronous callback that allows to process a non-error output line at a time that is not a download
+         * progress report of the monitored conda command.<br>
+         * Exceptions thrown by this callback are discarded.
+         *
+         * @param line The output message line, neither {@code null} nor empty.
+         */
+        protected abstract void handleNonProgressOutputLine(String line);
+
         @Override
-        protected final void handleOutputLine(final String message) {
-            try (final JsonReader reader = Json.createReader(new StringReader(message))) {
+        protected final void handleOutputLine(final String line) {
+            try (final JsonReader reader = Json.createReader(new StringReader(line))) {
                 final JsonObject jsonOutput = reader.readObject();
                 final String currentPackage = jsonOutput.getString("fetch");
                 final double maxValue = Double.parseDouble(jsonOutput.getString("maxval"));
                 final double progress = Double.parseDouble(jsonOutput.getString("progress"));
                 handlePackageDownloadProgress(currentPackage, progress / maxValue);
+            } catch (final Exception ex) {
+                handleNonProgressOutputLine(line);
             }
         }
     }

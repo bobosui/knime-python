@@ -48,6 +48,8 @@
  */
 package org.knime.python2.prefs;
 
+import static org.knime.python2.prefs.PythonPreferenceUtils.performActionOnWidgetInUiThread;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
@@ -63,6 +65,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.knime.python2.Conda.CondaEnvironmentCreationMonitor;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
@@ -76,7 +79,7 @@ class CondaEnvironmentGenerationDialog extends Dialog {
 
     public void open() {
         final Shell parent = getParent();
-        final Shell shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+        final Shell shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.SHEET);
         shell.setText("New Conda environment...");
         createContents(shell);
         shell.pack();
@@ -90,65 +93,58 @@ class CondaEnvironmentGenerationDialog extends Dialog {
     }
 
     private static void createContents(final Shell shell) {
-        final GridLayout gridLayout = new GridLayout();
-        gridLayout.numColumns = 3;
-        shell.setLayout(gridLayout);
+        shell.setLayout(new GridLayout(2, false));
 
         final Label descriptionText = new Label(shell, SWT.WRAP);
         descriptionText.setText("Creating the conda environment may take several minutes"
             + "\nand requires an active internet connection.");
-        GridData gridData = new GridData();
-        descriptionText.setData(gridData);
+        descriptionText.setData(new GridData());
 
-        final Label statusLabel = new Label(shell, SWT.NONE);
-        statusLabel.setText("Status: ");
-        gridData = new GridData();
-        gridData.horizontalSpan = 3;
+        final Composite installationMonitorContainer = new Composite(shell, SWT.NONE);
+        installationMonitorContainer.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, true, 2, 1));
+        installationMonitorContainer.setLayout(new GridLayout());
+
+        // TODO: Python 2 vs Python 3
+
+        final Label statusLabel = new Label(installationMonitorContainer, SWT.NONE);
+        statusLabel.setText("Status: "); // TODO: Dummy
+        GridData gridData = new GridData();
+        gridData.verticalIndent = 10;
         statusLabel.setLayoutData(gridData);
 
-        final Composite progressBarComposite = new Composite(shell, SWT.NONE);
-        progressBarComposite.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, false, false, 3, 1));
-        progressBarComposite.setLayout(new FillLayout());
-        final ProgressBar progressBar = new ProgressBar(progressBarComposite, SWT.SMOOTH);
+        final Composite progressBarContainer = new Composite(installationMonitorContainer, SWT.NONE);
+        progressBarContainer.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
+        progressBarContainer.setLayout(new FillLayout());
+        final ProgressBar progressBar = new ProgressBar(progressBarContainer, SWT.SMOOTH);
         progressBar.setMaximum(100);
+        progressBar.setSelection(50); // TODO: Dummy
 
-        final Label outputTextBoxLabel = new Label(shell, SWT.NONE);
-        outputTextBoxLabel.setText("Conda output log");
+        createTextBoxLabel("Conda output log", installationMonitorContainer);
+        createTextBox("dummy", false, installationMonitorContainer); // TODO: dummy
 
-        final Text outputTextBox = new Text(shell, SWT.READ_ONLY | SWT.MULTI | SWT.WRAP);
-        outputTextBox.setText("dummy");
-        gridData = new GridData();
-        gridData.horizontalAlignment = GridData.FILL_HORIZONTAL;
-        gridData.horizontalSpan = 3;
-        outputTextBox.setLayoutData(gridData);
+        createTextBoxLabel("Conda error log", installationMonitorContainer);
+        createTextBox("dummy", true, installationMonitorContainer); // TODO: dummy
 
-        final Label errorTextBoxLabel = new Label(shell, SWT.NONE);
-        errorTextBoxLabel.setText("Conda error log");
-
-        final Text errorTextBox = new Text(shell, SWT.READ_ONLY | SWT.MULTI | SWT.WRAP);
-        final Color red = new Color(shell.getDisplay(), 255, 0, 0);
-        errorTextBox.setForeground(red);
-        errorTextBox.addDisposeListener(e -> red.dispose());
-        errorTextBox.setText("dummy");
-        gridData = new GridData();
-        gridData.horizontalAlignment = GridData.FILL_HORIZONTAL;
-        gridData.horizontalSpan = 3;
-        errorTextBox.setLayoutData(gridData);
-
-        final Button startButton = new Button(shell, SWT.NONE);
-        startButton.setText("Start");
-        startButton.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false, 1, 1));
+        final Button createButton = new Button(shell, SWT.NONE);
+        createButton.setText("Create new environment");
+        createButton.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
 
         final Button cancelButton = new Button(shell, SWT.NONE);
         cancelButton.setText("Cancel");
-        cancelButton.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false, 1, 1));
+        cancelButton.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
+
+        // Initial state:
+
+        installationMonitorContainer.setEnabled(false);
 
         // Hooks:
 
-        startButton.addSelectionListener(new SelectionListener() {
+        createButton.addSelectionListener(new SelectionListener() {
 
             @Override
             public void widgetSelected(final SelectionEvent e) {
+                createButton.setEnabled(false);
+                installationMonitorContainer.setEnabled(true);
                 // TODO: Start installation.
             }
 
@@ -171,5 +167,87 @@ class CondaEnvironmentGenerationDialog extends Dialog {
                 widgetSelected(e);
             }
         });
+    }
+
+    private static Label createTextBoxLabel(final String labelText, final Composite parent) {
+        final Label textBoxLabel = new Label(parent, SWT.NONE);
+        textBoxLabel.setText(labelText);
+        final GridData gridData = new GridData();
+        gridData.verticalIndent = 10;
+        textBoxLabel.setLayoutData(gridData);
+        return textBoxLabel;
+    }
+
+    private static Text createTextBox(final String textBoxText, final boolean isErrorTextBox, final Composite parent) {
+        final Composite textBoxContainer = new Composite(parent, SWT.NONE);
+        textBoxContainer.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
+        textBoxContainer.setLayout(new FillLayout());
+        final Text textBox = new Text(textBoxContainer, SWT.READ_ONLY | SWT.MULTI | SWT.WRAP);
+        if (isErrorTextBox) {
+            final Color red = new Color(textBoxContainer.getDisplay(), 255, 0, 0);
+            textBox.setForeground(red);
+            textBox.addDisposeListener(e -> red.dispose());
+        }
+        textBox.setText(textBoxText);
+        final GridData gridData = new GridData();
+        gridData.horizontalAlignment = GridData.FILL_HORIZONTAL;
+        gridData.grabExcessHorizontalSpace = true;
+        textBox.setLayoutData(gridData);
+        return textBox;
+    }
+
+    private static final class DialogUpdatingCondaEnvironmentCreationMonitor extends CondaEnvironmentCreationMonitor {
+
+        private final Label m_statusLabel;
+
+        private final ProgressBar m_downloadProgressBar;
+
+        private final Text m_outputTextBox;
+
+        private final Text m_errorTextBox;
+
+        private DialogUpdatingCondaEnvironmentCreationMonitor(final Label statusLabel,
+            final ProgressBar downloadProgressBar, final Text outputTextBox, final Text errorTextBox) {
+            m_statusLabel = statusLabel;
+            m_downloadProgressBar = downloadProgressBar;
+            m_outputTextBox = outputTextBox;
+            m_errorTextBox = errorTextBox;
+        }
+
+        @Override
+        protected void handlePackageDownloadProgress(final String currentPackage, final double progress) {
+            performActionOnWidgetInUiThread(m_statusLabel, () -> {
+                m_statusLabel.setText("Status: Downloading package '" + currentPackage + "'...");
+                return null;
+            }, true);
+            performActionOnWidgetInUiThread(m_downloadProgressBar, () -> {
+                m_downloadProgressBar.setSelection((int)(progress * 100));
+                return null;
+            }, true);
+        }
+
+        @Override
+        protected void handleNonProgressOutputLine(final String line) {
+            performActionOnWidgetInUiThread(m_outputTextBox, () -> {
+                m_outputTextBox.setText(m_outputTextBox.getText() + line + "\n");
+                return null;
+            }, true);
+            performActionOnWidgetInUiThread(m_statusLabel, () -> {
+                m_statusLabel.setText("Status: Creating Conda environment...");
+                return null;
+            }, true);
+        }
+
+        @Override
+        protected void handleErrorLine(final String line) {
+            performActionOnWidgetInUiThread(m_errorTextBox, () -> {
+                m_errorTextBox.setText(m_errorTextBox.getText() + line + "\n");
+                return null;
+            }, true);
+            performActionOnWidgetInUiThread(m_statusLabel, () -> {
+                m_statusLabel.setText("Status: An error occurred. See below.");
+                return null;
+            }, true);
+        }
     }
 }
