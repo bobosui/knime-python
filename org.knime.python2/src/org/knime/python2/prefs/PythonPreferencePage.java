@@ -159,26 +159,28 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Conda environment configuration, including environment creation dialogs:
 
-        final CondaEnvironmentsConfig condaEnvironmentConfig = new CondaEnvironmentsConfig();
-        m_configs.add(condaEnvironmentConfig);
+        final CondaEnvironmentsConfig condaEnvironmentsConfig = new CondaEnvironmentsConfig();
+        m_configs.add(condaEnvironmentsConfig);
 
         final Shell shell = getShell();
-        final CondaEnvironmentCreationStatus python2EnvironmentCreationStatus = new CondaEnvironmentCreationStatus();
+        final CondaEnvironmentCreationStatus python2EnvironmentCreationStatus =
+            new CondaEnvironmentCreationStatus(PythonVersion.PYTHON2, condaEnvironmentsConfig.getCondaDirectoryPath());
         final CondaEnvironmentCreationPreferenceDialog python2EnvironmentCreationDialog =
             new CondaEnvironmentCreationPreferenceDialog(python2EnvironmentCreationStatus, shell);
-        final CondaEnvironmentCreationStatus python3EnvironmentCreationStatus = new CondaEnvironmentCreationStatus();
+        final CondaEnvironmentCreationStatus python3EnvironmentCreationStatus =
+            new CondaEnvironmentCreationStatus(PythonVersion.PYTHON3, condaEnvironmentsConfig.getCondaDirectoryPath());
         final CondaEnvironmentCreationPreferenceDialog python3EnvironmentCreationDialog =
             new CondaEnvironmentCreationPreferenceDialog(python3EnvironmentCreationStatus, shell);
 
-        m_condaEnvironmentPanel = new CondaEnvironmentPreferencePanel(condaEnvironmentConfig,
+        m_condaEnvironmentPanel = new CondaEnvironmentPreferencePanel(condaEnvironmentsConfig,
             python2EnvironmentCreationDialog, python3EnvironmentCreationDialog, environmentConfigurationPanel);
 
         // Manual environment configuration:
 
-        final ManualEnvironmentsConfig manualEnvironmentConfig = new ManualEnvironmentsConfig();
-        m_configs.add(manualEnvironmentConfig);
+        final ManualEnvironmentsConfig manualEnvironmentsConfig = new ManualEnvironmentsConfig();
+        m_configs.add(manualEnvironmentsConfig);
         m_manualEnvironmentPanel =
-            new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, environmentConfigurationPanel);
+            new ManualEnvironmentPreferencePanel(manualEnvironmentsConfig, environmentConfigurationPanel);
 
         // Serializer selection:
 
@@ -201,8 +203,9 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         environmentTypeConfig.getEnvironmentType().addChangeListener(
             e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
 
-        m_configObserver = new PythonConfigsObserver(pythonVersionConfig, environmentTypeConfig, condaEnvironmentConfig,
-            manualEnvironmentConfig, serializerConfig);
+        m_configObserver = new PythonConfigsObserver(pythonVersionConfig, environmentTypeConfig,
+            condaEnvironmentsConfig, python2EnvironmentCreationStatus, python3EnvironmentCreationStatus,
+            manualEnvironmentsConfig, serializerConfig);
 
         // Displaying installation test results may require resizing the scroll view.
         m_configObserver.addConfigsTestStatusListener(new PythonConfigsTestStatusListener() {

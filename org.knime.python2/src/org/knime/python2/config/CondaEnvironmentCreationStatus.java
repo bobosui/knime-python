@@ -50,12 +50,13 @@ package org.knime.python2.config;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.ProgressBar;
-import org.eclipse.swt.widgets.Text;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.defaultnodesettings.SettingsModelInteger;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.python2.Conda;
 import org.knime.python2.Conda.CondaEnvironmentCreationMonitor;
+import org.knime.python2.PythonVersion;
+import org.knime.python2.kernel.PythonCanceledExecutionException;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
@@ -69,13 +70,29 @@ public final class CondaEnvironmentCreationStatus {
 
     private static final String DUMMY_CFG_KEY = "dummy";
 
-    private final SettingsModelString m_statusMessage = new SettingsModelString(DUMMY_CFG_KEY, "");
+    private static final String DEFAULT_STRING_VALUE = "";
 
-    private final SettingsModelInteger m_progress = new SettingsModelInteger(DUMMY_CFG_KEY, 0);
+    private static final int DEFAULT_INT_VALUE = 0;
 
-    private final SettingsModelString m_outputLog = new SettingsModelString(DUMMY_CFG_KEY, "");
+    private final PythonVersion m_pythonVersion;
 
-    private final SettingsModelString m_errorLog = new SettingsModelString(DUMMY_CFG_KEY, "");
+    private final SettingsModelString m_condaDirectoryPath;
+
+    private final SettingsModelString m_statusMessage = new SettingsModelString(DUMMY_CFG_KEY, DEFAULT_STRING_VALUE);
+
+    private final SettingsModelInteger m_progress = new SettingsModelInteger(DUMMY_CFG_KEY, DEFAULT_INT_VALUE);
+
+    private final SettingsModelString m_outputLog = new SettingsModelString(DUMMY_CFG_KEY, DEFAULT_STRING_VALUE);
+
+    private final SettingsModelString m_errorLog = new SettingsModelString(DUMMY_CFG_KEY, DEFAULT_STRING_VALUE);
+
+    private CondaEnvironmentCreationMonitor m_monitor;
+
+    public CondaEnvironmentCreationStatus(final PythonVersion environmentPythonVersion,
+        final SettingsModelString condaDirectoryPath) {
+        m_pythonVersion = environmentPythonVersion;
+        m_condaDirectoryPath = condaDirectoryPath;
+    }
 
     public SettingsModelString getStatusMessage() {
         return m_statusMessage;
@@ -103,85 +120,104 @@ public final class CondaEnvironmentCreationStatus {
         return m_listeners.remove(listener);
     }
 
+    // TODO: Figure out threading, access, and synchronization here. Also in Conda.java.
+
     public void startEnvironmentGeneration() {
-        onEnvironmentCreationStarted();
-    }
-
-    public void cancelEnvironmentGeneration() {
-        onEnvironmentCreationCanceled();
-    }
-
-    private synchronized void onEnvironmentCreationStarted() {
-        for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
-            listener.condaEnvironmentCreationStarted();
+        if (m_monitor != null) {
+            throw new IllegalStateException("Environment generation was tried to be started although one is already in "
+                + "progress. This is an implementation error.");
+        }
+        onEnvironmentCreationStarting();
+        try {
+            final Conda conda = new Conda(m_condaDirectoryPath.getStringValue());
+            m_monitor = new StateUpdatingCondaEnvironmentCreationMonitor();
+            final String createdEnvironmentName;
+            if (m_pythonVersion.equals(PythonVersion.PYTHON2)) {
+                createdEnvironmentName = conda.createDefaultPython2Environment(m_monitor);
+            } else if (m_pythonVersion.equals(PythonVersion.PYTHON3)) {
+                createdEnvironmentName = conda.createDefaultPython3Environment(m_monitor);
+            } else {
+                throw new IllegalStateException("Python version '" + m_pythonVersion
+                    + "' is neither Python 2 nor Python " + "3. This is an implementation error.");
+            }
+            onEnvironmentCreationFinished(createdEnvironmentName);
+        } catch (final PythonCanceledExecutionException ex) {
+            resetStatus();
+            onEnvironmentCreationCanceled();
+        } catch (final Exception ex) {
+            NodeLogger.getLogger(CondaEnvironmentCreationStatus.class).debug(ex, ex);
+            onEnvironmentCreationFailed(ex.getMessage());
         }
     }
 
-    private synchronized void onEnvironmentCreationCanceled() {
+    public void cancelEnvironmentGeneration() {
+        if (m_monitor == null) {
+            throw new IllegalStateException("Environment generation was tried to be canceled although none was "
+                + "started. This is an implementation error.");
+        }
+        m_monitor.cancel();
+    }
+
+    private void resetStatus() {
+        m_statusMessage.setStringValue(DEFAULT_STRING_VALUE);
+        m_progress.setIntValue(DEFAULT_INT_VALUE);
+        m_outputLog.setStringValue(DEFAULT_STRING_VALUE);
+        m_errorLog.setStringValue(DEFAULT_STRING_VALUE);
+    }
+
+    private void onEnvironmentCreationStarting() {
+        for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
+            listener.condaEnvironmentCreationStarting();
+        }
+    }
+
+    private void onEnvironmentCreationFinished(final String environmentName) {
+        for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
+            listener.condaEnvironmentCreationFinished(environmentName);
+        }
+    }
+
+    private void onEnvironmentCreationCanceled() {
         for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
             listener.condaEnvironmentCreationCanceled();
         }
     }
 
-    public interface CondaEnvironmentCreationStatusListener {
-
-        void condaEnvironmentCreationStarted();
-
-        void condaEnvironmentCreationCanceled();
+    private void onEnvironmentCreationFailed(final String errorMessage) {
+        for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
+            listener.condaEnvironmentCreationFailed(errorMessage);
+        }
     }
 
-    private static final class DialogUpdatingCondaEnvironmentCreationMonitor extends CondaEnvironmentCreationMonitor {
+    public interface CondaEnvironmentCreationStatusListener {
 
-        private final Label m_statusLabel;
+        void condaEnvironmentCreationStarting();
 
-        private final ProgressBar m_downloadProgressBar;
+        void condaEnvironmentCreationFinished(String environmentName);
 
-        private final Text m_outputTextBox;
+        void condaEnvironmentCreationCanceled();
 
-        private final Text m_errorTextBox;
+        void condaEnvironmentCreationFailed(String errorMessage);
+    }
 
-        private DialogUpdatingCondaEnvironmentCreationMonitor(final Label statusLabel,
-            final ProgressBar downloadProgressBar, final Text outputTextBox, final Text errorTextBox) {
-            m_statusLabel = statusLabel;
-            m_downloadProgressBar = downloadProgressBar;
-            m_outputTextBox = outputTextBox;
-            m_errorTextBox = errorTextBox;
-        }
+    private final class StateUpdatingCondaEnvironmentCreationMonitor extends CondaEnvironmentCreationMonitor {
 
         @Override
         protected void handlePackageDownloadProgress(final String currentPackage, final double progress) {
-            performActionOnWidgetInUiThread(m_statusLabel, () -> {
-                m_statusLabel.setText(STATUS_LABEL_PREFIX + "Downloading package '" + currentPackage + "'...");
-                return null;
-            }, true);
-            performActionOnWidgetInUiThread(m_downloadProgressBar, () -> {
-                m_downloadProgressBar.setSelection((int)(progress * 100));
-                return null;
-            }, true);
+            m_statusMessage.setStringValue("Downloading package '" + currentPackage + "'...");
+            m_progress.setIntValue((int)(progress * 100));
         }
 
         @Override
         protected void handleNonProgressOutputLine(final String line) {
-            performActionOnWidgetInUiThread(m_outputTextBox, () -> {
-                m_outputTextBox.setText(m_outputTextBox.getText() + line + "\n");
-                return null;
-            }, true);
-            performActionOnWidgetInUiThread(m_statusLabel, () -> {
-                m_statusLabel.setText(STATUS_LABEL_PREFIX + "Creating Conda environment...");
-                return null;
-            }, true);
+            m_outputLog.setStringValue(m_outputLog.getStringValue() + "\n" + line);
+            m_statusMessage.setStringValue("Creating Conda environment...");
         }
 
         @Override
         protected void handleErrorLine(final String line) {
-            performActionOnWidgetInUiThread(m_errorTextBox, () -> {
-                m_errorTextBox.setText(m_errorTextBox.getText() + line + "\n");
-                return null;
-            }, true);
-            performActionOnWidgetInUiThread(m_statusLabel, () -> {
-                m_statusLabel.setText(STATUS_LABEL_PREFIX + "An error occurred. See below.");
-                return null;
-            }, true);
+            m_errorLog.setStringValue(m_errorLog.getStringValue() + "\n" + line);
+            m_statusMessage.setStringValue("An error occurred.");
         }
     }
 }

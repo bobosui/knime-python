@@ -72,6 +72,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.Version;
+import org.knime.python2.kernel.PythonCanceledExecutionException;
 
 /**
  * Interface to an external Conda installation.
@@ -261,10 +262,12 @@ public final class Conda {
      * @param monitor Receives progress of the creation process. Allows to cancel environment creation.
      * @return The name of the created conda environment.
      * @throws IOException If an error occurs during execution of the underlying conda commands.
+     * @throws PythonCanceledExecutionException If environment creation was canceled via the given monitor.
      * @throws UnsupportedOperationException If creating a default environment is not supported for the local operating
      *             system.
      */
-    public String createDefaultPython2Environment(final CondaEnvironmentCreationMonitor monitor) throws IOException {
+    public String createDefaultPython2Environment(final CondaEnvironmentCreationMonitor monitor)
+        throws IOException, PythonCanceledExecutionException {
         return createDefaultPythonEnvironment(PYTHON2_DESCRIPTION_FILE, PythonVersion.PYTHON2, monitor);
     }
 
@@ -275,15 +278,17 @@ public final class Conda {
      * @param monitor Receives progress of the creation process. Allows to cancel environment creation.
      * @return The name of the created conda environment.
      * @throws IOException If an error occurs during execution of the underlying conda commands.
+     * @throws PythonCanceledExecutionException If environment creation was canceled via the given monitor.
      * @throws UnsupportedOperationException If creating a default environment is not supported for the local operating
      *             system.
      */
-    public String createDefaultPython3Environment(final CondaEnvironmentCreationMonitor monitor) throws IOException {
+    public String createDefaultPython3Environment(final CondaEnvironmentCreationMonitor monitor)
+        throws IOException, PythonCanceledExecutionException {
         return createDefaultPythonEnvironment(PYTHON3_DESCRIPTION_FILE, PythonVersion.PYTHON3, monitor);
     }
 
     private String createDefaultPythonEnvironment(final String descriptionFileName, final PythonVersion pythonVersion,
-        final CondaEnvironmentCreationMonitor monitor) throws IOException {
+        final CondaEnvironmentCreationMonitor monitor) throws IOException, PythonCanceledExecutionException {
         final String osSubDirectory = getConfigSubDirectoryForOS();
         final String relativePathToDescriptionFile =
             Paths.get(CONDA_CONFIGS_DIRECTORY, osSubDirectory, descriptionFileName).toString();
@@ -302,9 +307,10 @@ public final class Conda {
      *            environment.
      * @return The name of the created environment.
      * @throws IOException If an error occurs during execution of the underlying command.
+     * @throws PythonCanceledExecutionException If environment creation was canceled via the given monitor.
      */
     private String createEnvironmentFromFile(final String pathToFile, final PythonVersion pythonVersion,
-        final CondaEnvironmentCreationMonitor monitor) throws IOException {
+        final CondaEnvironmentCreationMonitor monitor) throws IOException, PythonCanceledExecutionException {
         final String environmentPrefix = pythonVersion.equals(PythonVersion.PYTHON2) //
             ? DEFAULT_PYTHON2_ENV_PREFIX //
             : DEFAULT_PYTHON3_ENV_PREFIX;
@@ -335,7 +341,7 @@ public final class Conda {
      * {@code conda env create --file <file> [-n <name>]}
      */
     private void createEnvironmentFromFile(final String pathToFile, final String optionalEnvironmentName,
-        final CondaEnvironmentCreationMonitor monitor) throws IOException {
+        final CondaEnvironmentCreationMonitor monitor) throws IOException, PythonCanceledExecutionException {
         final List<String> arguments = new ArrayList<>(6);
         Collections.addAll(arguments, "env", "create", "--file", pathToFile, "--json");
         if (optionalEnvironmentName != null) {
@@ -345,7 +351,7 @@ public final class Conda {
     }
 
     private void callCondaAndMonitorExecution(final CondaExecutionMonitor monitor, final String... arguments)
-        throws IOException {
+        throws IOException, PythonCanceledExecutionException {
         final Process conda = startCondaProcess(arguments);
         final Thread outputListener =
             new Thread(createCondaStreamReaderRunnable(conda.getInputStream(), monitor, monitor::handleOutputLine));
@@ -357,6 +363,7 @@ public final class Conda {
         outputListener.start();
         errorListener.start();
 
+        // TODO: Make cancelable via monitor.
         final int condaExitCode = awaitTermination(conda);
         // Should not be necessary, but let's play safe here.
         outputListener.interrupt();

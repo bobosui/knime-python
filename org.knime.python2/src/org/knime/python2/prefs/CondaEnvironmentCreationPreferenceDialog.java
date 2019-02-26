@@ -53,6 +53,8 @@ import static org.knime.python2.prefs.PythonPreferenceUtils.performActionOnWidge
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.events.ShellListener;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
@@ -176,6 +178,34 @@ class CondaEnvironmentCreationPreferenceDialog extends Dialog implements CondaEn
             @Override
             public void widgetDefaultSelected(final SelectionEvent e) {
                 widgetSelected(e);
+            }
+        });
+
+        m_shell.addShellListener(new ShellListener() {
+
+            @Override
+            public void shellIconified(final ShellEvent e) {
+                // no-op
+            }
+
+            @Override
+            public void shellDeiconified(final ShellEvent e) {
+                // no-op
+            }
+
+            @Override
+            public void shellDeactivated(final ShellEvent e) {
+                // no-op
+            }
+
+            @Override
+            public void shellClosed(final ShellEvent e) {
+                m_status.cancelEnvironmentGeneration();
+            }
+
+            @Override
+            public void shellActivated(final ShellEvent e) {
+                // no-op
             }
         });
     }

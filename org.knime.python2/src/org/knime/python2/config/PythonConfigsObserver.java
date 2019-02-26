@@ -62,6 +62,7 @@ import org.knime.python2.PythonKernelTester;
 import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
 import org.knime.python2.PythonModuleSpec;
 import org.knime.python2.PythonVersion;
+import org.knime.python2.config.CondaEnvironmentCreationStatus.CondaEnvironmentCreationStatusListener;
 import org.knime.python2.extensions.serializationlibrary.SerializationLibraryExtensions;
 
 /**
@@ -92,12 +93,16 @@ public final class PythonConfigsObserver {
      * @param environmentTypeConfig Environment type. Changes to the selected environment type are observed.
      * @param condaEnvironmentsConfig Conda environment configuration. Changes to the conda directory path as well as to
      *            the Python 2 and Python 3 environments are observed.
+     * @param python3EnvironmentCreationStatus
+     * @param python2EnvironmentCreationStatus
      * @param manualEnvironmentsConfig Manual environment configuration. Changes to the Python 2 and Python 3 paths are
      *            observed.
      * @param serializerConfig Serializer configuration. Changes to the serializer are observed.
      */
     public PythonConfigsObserver(final PythonVersionConfig versionConfig,
         final PythonEnvironmentTypeConfig environmentTypeConfig, final CondaEnvironmentsConfig condaEnvironmentsConfig,
+        final CondaEnvironmentCreationStatus python2EnvironmentCreationStatus,
+        final CondaEnvironmentCreationStatus python3EnvironmentCreationStatus,
         final ManualEnvironmentsConfig manualEnvironmentsConfig, final SerializerConfig serializerConfig) {
         m_versionConfig = versionConfig;
         m_environmentTypeConfig = environmentTypeConfig;
@@ -135,6 +140,9 @@ public final class PythonConfigsObserver {
 
         // Test required external modules of serializer on change:
         serializerConfig.getSerializer().addChangeListener(e -> testSelectedPythonEnvironmentType());
+
+        observeEnvironmentCreation(python2EnvironmentCreationStatus, false);
+        observeEnvironmentCreation(python2EnvironmentCreationStatus, true);
     }
 
     private void updateDefaultPythonEnvironment() {
@@ -361,6 +369,32 @@ public final class PythonConfigsObserver {
             dummyCondaEnvironmentName = CondaEnvironmentsConfig.PLACEHOLDER_PYTHON2_CONDA_ENV_NAME;
         }
         return dummyCondaEnvironmentName.equals(condaEnvironmentName.getStringValue());
+    }
+
+    private void observeEnvironmentCreation(final CondaEnvironmentCreationStatus creationStatus,
+        final boolean isPython3) {
+        creationStatus.addEnvironmentCreationStatusListener(new CondaEnvironmentCreationStatusListener() {
+
+            @Override
+            public void condaEnvironmentCreationStarting() {
+                // no-op
+            }
+
+            @Override
+            public void condaEnvironmentCreationFinished(final String environmentName) {
+                // TODO: refresh available environmetns, select new environment
+            }
+
+            @Override
+            public void condaEnvironmentCreationFailed(final String errorMessage) {
+                // no-op
+            }
+
+            @Override
+            public void condaEnvironmentCreationCanceled() {
+                // no-op
+            }
+        });
     }
 
     private synchronized void onCondaInstallationTestStarting() {
