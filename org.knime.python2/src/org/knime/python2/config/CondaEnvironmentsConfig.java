@@ -61,7 +61,7 @@ public final class CondaEnvironmentsConfig implements PythonEnvironmentsConfig {
     /**
      * Configuration key for the path to the Conda installation directory.
      */
-    public static final String CFG_KEY_CONDA_DIRECTORY_PATH = "condaInstallationDirectory";
+    public static final String CFG_KEY_CONDA_DIRECTORY_PATH = "condaDirectoryPath";
 
     /**
      * Configuration key for the Python 2 Conda environment.

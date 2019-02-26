@@ -44,72 +44,18 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 3, 2019 (marcel): created
+ *   Feb 26, 2019 (marcel): created
  */
 package org.knime.python2.config;
-
-import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.core.node.defaultnodesettings.SettingsModelStringArray;
-import org.knime.python2.Conda;
-import org.knime.python2.PythonCommand;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public final class CondaEnvironmentConfig extends AbstractPythonEnvironmentConfig {
-
-    private final SettingsModelString m_environmentName;
-
-    // Not managed by this config. Only needed to create command object.
-
-    private final SettingsModelString m_condaDirectory;
-
-    // Not meant for saving/loading. We just want observable values here to communicate with the view:
-
-    private static final String DUMMY_CFG_KEY = "dummy";
-
-    private final SettingsModelStringArray m_availableEnvironments;
+public interface CondaEnvironmentCreationDialog {
 
     /**
-     * @param configKey The identifier of this config. Used for saving/loading.
-     * @param defaultEnvironmentName The initial Conda environment name.
-     * @param condaDirectory The settings model that specifies the Conda installation directory. Not saved/loaded or
-     *            otherwise managed by this config.
+     * Opens the dialog that let's the user initiate, monitor, and cancel the Conda environment creation.
      */
-    public CondaEnvironmentConfig(final String configKey, final String defaultEnvironmentName,
-        final SettingsModelString condaDirectory) {
-        m_environmentName = new SettingsModelString(configKey, defaultEnvironmentName);
-        m_availableEnvironments = new SettingsModelStringArray(DUMMY_CFG_KEY, new String[]{defaultEnvironmentName});
-        m_condaDirectory = condaDirectory;
-    }
-
-    /**
-     * @return The name of the Python Conda environment.
-     */
-    public SettingsModelString getEnvironmentName() {
-        return m_environmentName;
-    }
-
-    /**
-     * @return The list of currently available Python Conda environments. Not meant for saving/loading.
-     */
-    public SettingsModelStringArray getAvailableEnvironmentNames() {
-        return m_availableEnvironments;
-    }
-
-    @Override
-    public PythonCommand getPythonCommand() {
-        return Conda.createPythonCommand(m_condaDirectory.getStringValue(), m_environmentName.getStringValue());
-    }
-
-    @Override
-    public void saveConfigTo(final PythonConfigStorage storage) {
-        storage.saveStringModel(m_environmentName);
-    }
-
-    @Override
-    public void loadConfigFrom(final PythonConfigStorage storage) {
-        storage.loadStringModel(m_environmentName);
-    }
+    void open();
 }

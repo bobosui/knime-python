@@ -345,8 +345,13 @@ public class PythonKernelOptions {
         m_flowVariableOptions = options;
     }
 
+
+    /**
+     * @deprecated Use {@link PythonVersion} instead.
+     */
     @SuppressWarnings("javadoc")
-    public static enum PythonVersionOption {
+    @Deprecated
+    public enum PythonVersionOption {
             PYTHON2, PYTHON3;
     }
 

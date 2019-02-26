@@ -86,12 +86,15 @@ final class CondaEnvironmentSelectionBox extends Composite {
      *            non-UI thread.
      * @param errorMessageModel The settings model for the error label. May be updated asynchronously, that is, in a
      *            non-UI thread.
+     * @param environmentCreationDialog The dialog that handles the creation of a new conda environments when the user
+     *            clicks the widget's "New..." button.
      * @param parent The parent widget.
      */
     public CondaEnvironmentSelectionBox(final SettingsModelString environmentModel,
         final SettingsModelStringArray availableEnvironmentsModel, final String headerLabel,
         final String selectionBoxLabel, final SettingsModelString infoMessageModel,
-        final SettingsModelString errorMessageModel, final Composite parent) {
+        final SettingsModelString errorMessageModel, final CondaEnvironmentCreationPreferenceDialog environmentCreationDialog,
+        final Composite parent) {
         super(parent, SWT.NONE);
         m_environmentModel = environmentModel;
 
@@ -156,9 +159,7 @@ final class CondaEnvironmentSelectionBox extends Composite {
 
             @Override
             public void widgetSelected(final SelectionEvent e) {
-                final CondaEnvironmentGenerationDialog dialog =
-                    new CondaEnvironmentGenerationDialog(CondaEnvironmentSelectionBox.this.getShell());
-                dialog.open();
+                environmentCreationDialog.open();
             }
 
             @Override

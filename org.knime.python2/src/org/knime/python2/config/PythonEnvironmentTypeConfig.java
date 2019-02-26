@@ -59,7 +59,7 @@ public final class PythonEnvironmentTypeConfig implements PythonConfig {
     /**
      * Configuration key for the selection of conda v. manual environment selection.
      */
-    public static final String CFG_KEY_ENVIRONMENT_TYPE = "environmentType";
+    public static final String CFG_KEY_ENVIRONMENT_TYPE = "pythonEnvironmentType";
 
     /***
      * The default selection.

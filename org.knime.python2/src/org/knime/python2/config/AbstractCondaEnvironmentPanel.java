@@ -54,21 +54,25 @@ import org.knime.core.node.defaultnodesettings.SettingsModelString;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-public abstract class AbstractCondaEnvironmentPanel<W> extends AbstractPythonConfigPanel<CondaEnvironmentsConfig, W> {
+public abstract class AbstractCondaEnvironmentPanel<D extends CondaEnvironmentCreationDialog, W>
+    extends AbstractPythonConfigPanel<CondaEnvironmentsConfig, W> {
 
-    public AbstractCondaEnvironmentPanel(final CondaEnvironmentsConfig config, final W parent) {
+    public AbstractCondaEnvironmentPanel(final CondaEnvironmentsConfig config, final D python2EnvironmentCreationDialog,
+        final D python3EnvironmentCreationDialog, final W parent) {
         super(config, parent);
         final W panel = getPanel();
         createCondaDirectoryPathWidget(config.getCondaDirectoryPath(), config.getCondaInstallationInfo(),
             config.getCondaInstallationError(), panel);
-        createPython2EnvironmentWidget(config.getPython2Config(), panel);
-        createPython3EnvironmentWidget(config.getPython3Config(), panel);
+        createPython2EnvironmentWidget(config.getPython2Config(), python2EnvironmentCreationDialog, panel);
+        createPython3EnvironmentWidget(config.getPython3Config(), python3EnvironmentCreationDialog, panel);
     }
 
     protected abstract void createCondaDirectoryPathWidget(SettingsModelString condaDirectoryPath,
         SettingsModelString installationInfoMessage, SettingsModelString installationErrorMessage, W panel);
 
-    protected abstract void createPython2EnvironmentWidget(CondaEnvironmentConfig python2Config, W panel);
+    protected abstract void createPython2EnvironmentWidget(CondaEnvironmentConfig python2Config,
+        D python2EnvironmentCreationDialog, W panel);
 
-    protected abstract void createPython3EnvironmentWidget(CondaEnvironmentConfig python3Config, W panel);
+    protected abstract void createPython3EnvironmentWidget(CondaEnvironmentConfig python3Config,
+        D python3EnvironmentCreationDialog, W panel);
 }

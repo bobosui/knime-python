@@ -65,79 +65,90 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.knime.python2.Conda.CondaEnvironmentCreationMonitor;
+import org.knime.python2.config.CondaEnvironmentCreationDialog;
+import org.knime.python2.config.CondaEnvironmentCreationStatus;
 
 /**
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-class CondaEnvironmentGenerationDialog extends Dialog {
+class CondaEnvironmentCreationPreferenceDialog extends Dialog implements CondaEnvironmentCreationDialog {
 
-    public CondaEnvironmentGenerationDialog(final Shell parent) {
+    private static final String STATUS_LABEL_PREFIX = "Status: ";
+
+    private final CondaEnvironmentCreationStatus m_status;
+
+    private final Shell m_shell;
+
+    private Label m_statusLabel;
+
+    private ProgressBar m_downloadProgressBar;
+
+    private Text m_outputTextBox;
+
+    private Text m_errorTextBox;
+
+    public CondaEnvironmentCreationPreferenceDialog(final CondaEnvironmentCreationStatus status, final Shell parent) {
         super(parent, SWT.NONE);
+        m_status = status;
+        m_shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.SHEET);
+        m_shell.setText("New Conda environment...");
+        createContents();
+        m_shell.pack();
     }
 
-    public void open() {
-        final Shell parent = getParent();
-        final Shell shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.SHEET);
-        shell.setText("New Conda environment...");
-        createContents(shell);
-        shell.pack();
-        shell.open();
-        final Display display = parent.getDisplay();
-        while (!shell.isDisposed()) {
-            if (!display.readAndDispatch()) {
-                display.sleep();
-            }
-        }
-    }
+    private void createContents() {
+        m_shell.setLayout(new GridLayout(2, false));
 
-    private static void createContents(final Shell shell) {
-        shell.setLayout(new GridLayout(2, false));
-
-        final Label descriptionText = new Label(shell, SWT.WRAP);
+        final Label descriptionText = new Label(m_shell, SWT.WRAP);
         descriptionText.setText("Creating the conda environment may take several minutes"
             + "\nand requires an active internet connection.");
-        descriptionText.setData(new GridData());
+        GridData gridData = new GridData();
+        gridData.horizontalSpan = 2;
+        descriptionText.setLayoutData(gridData);
 
-        final Composite installationMonitorContainer = new Composite(shell, SWT.NONE);
+        // Progress monitoring widgets:
+
+        final Composite installationMonitorContainer = new Composite(m_shell, SWT.NONE);
         installationMonitorContainer.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, true, 2, 1));
         installationMonitorContainer.setLayout(new GridLayout());
 
-        // TODO: Python 2 vs Python 3
-
-        final Label statusLabel = new Label(installationMonitorContainer, SWT.NONE);
-        statusLabel.setText("Status: "); // TODO: Dummy
-        GridData gridData = new GridData();
+        m_statusLabel = new Label(installationMonitorContainer, SWT.NONE);
+        String statusMessage = m_status.getStatusMessage().getStringValue();
+        if (statusMessage == null || statusMessage.isEmpty()) {
+            statusMessage = "Not yet started. Click 'Create new environment'.";
+        }
+        m_statusLabel.setText(STATUS_LABEL_PREFIX + statusMessage);
+        gridData = new GridData();
         gridData.verticalIndent = 10;
-        statusLabel.setLayoutData(gridData);
+        m_statusLabel.setLayoutData(gridData);
 
         final Composite progressBarContainer = new Composite(installationMonitorContainer, SWT.NONE);
         progressBarContainer.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
         progressBarContainer.setLayout(new FillLayout());
-        final ProgressBar progressBar = new ProgressBar(progressBarContainer, SWT.SMOOTH);
-        progressBar.setMaximum(100);
-        progressBar.setSelection(50); // TODO: Dummy
+        m_downloadProgressBar = new ProgressBar(progressBarContainer, SWT.SMOOTH);
+        m_downloadProgressBar.setMaximum(100);
+        m_downloadProgressBar.setSelection(m_status.getProgress().getIntValue());
 
         createTextBoxLabel("Conda output log", installationMonitorContainer);
-        createTextBox("dummy", false, installationMonitorContainer); // TODO: dummy
+        m_outputTextBox = createTextBox(m_status.getOutputLog().getStringValue(), false, installationMonitorContainer);
 
         createTextBoxLabel("Conda error log", installationMonitorContainer);
-        createTextBox("dummy", true, installationMonitorContainer); // TODO: dummy
-
-        final Button createButton = new Button(shell, SWT.NONE);
-        createButton.setText("Create new environment");
-        createButton.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
-
-        final Button cancelButton = new Button(shell, SWT.NONE);
-        cancelButton.setText("Cancel");
-        cancelButton.setLayoutData(new GridData(SWT.RIGHT, SWT.BOTTOM, false, false));
-
-        // Initial state:
+        m_errorTextBox = createTextBox(m_status.getErrorLog().getStringValue(), true, installationMonitorContainer);
 
         installationMonitorContainer.setEnabled(false);
 
+        // --
+
+        final Button createButton = createButton("Create new environment", m_shell);
+        final Button cancelButton = createButton("Cancel", m_shell);
+
         // Hooks:
+
+        m_status.getStatusMessage().addChangeListener(e -> updateStatusMessage());
+        m_status.getProgress().addChangeListener(e -> updateProgress());
+        m_status.getOutputLog().addChangeListener(e -> updateOutputLog());
+        m_status.getErrorLog().addChangeListener(e -> updateErrorLog());
 
         createButton.addSelectionListener(new SelectionListener() {
 
@@ -145,7 +156,7 @@ class CondaEnvironmentGenerationDialog extends Dialog {
             public void widgetSelected(final SelectionEvent e) {
                 createButton.setEnabled(false);
                 installationMonitorContainer.setEnabled(true);
-                // TODO: Start installation.
+                m_status.startEnvironmentGeneration();
             }
 
             @Override
@@ -158,8 +169,8 @@ class CondaEnvironmentGenerationDialog extends Dialog {
 
             @Override
             public void widgetSelected(final SelectionEvent e) {
-                // TODO: Cancel installation if in progress.
-                shell.close();
+                m_status.cancelEnvironmentGeneration();
+                m_shell.close();
             }
 
             @Override
@@ -189,65 +200,54 @@ class CondaEnvironmentGenerationDialog extends Dialog {
             textBox.addDisposeListener(e -> red.dispose());
         }
         textBox.setText(textBoxText);
-        final GridData gridData = new GridData();
-        gridData.horizontalAlignment = GridData.FILL_HORIZONTAL;
-        gridData.grabExcessHorizontalSpace = true;
-        textBox.setLayoutData(gridData);
         return textBox;
     }
 
-    private static final class DialogUpdatingCondaEnvironmentCreationMonitor extends CondaEnvironmentCreationMonitor {
+    private static Button createButton(final String buttonText, final Composite parent) {
+        final Button button = new Button(parent, SWT.NONE);
+        button.setText(buttonText);
+        final GridData gridData = new GridData(SWT.RIGHT, SWT.BOTTOM, false, false);
+        gridData.verticalIndent = 20;
+        button.setLayoutData(gridData);
+        return button;
+    }
 
-        private final Label m_statusLabel;
+    private void updateStatusMessage() {
+        performActionOnWidgetInUiThread(m_statusLabel, () -> {
+            m_statusLabel.setText(STATUS_LABEL_PREFIX + m_status.getStatusMessage().getStringValue());
+            return null;
+        }, true);
+    }
 
-        private final ProgressBar m_downloadProgressBar;
+    private void updateProgress() {
+        performActionOnWidgetInUiThread(m_downloadProgressBar, () -> {
+            m_downloadProgressBar.setSelection(m_status.getProgress().getIntValue());
+            return null;
+        }, true);
+    }
 
-        private final Text m_outputTextBox;
+    private void updateOutputLog() {
+        performActionOnWidgetInUiThread(m_outputTextBox, () -> {
+            m_outputTextBox.setText(m_status.getOutputLog().getStringValue());
+            return null;
+        }, true);
+    }
 
-        private final Text m_errorTextBox;
+    private void updateErrorLog() {
+        performActionOnWidgetInUiThread(m_errorTextBox, () -> {
+            m_errorTextBox.setText(m_status.getErrorLog().getStringValue());
+            return null;
+        }, true);
+    }
 
-        private DialogUpdatingCondaEnvironmentCreationMonitor(final Label statusLabel,
-            final ProgressBar downloadProgressBar, final Text outputTextBox, final Text errorTextBox) {
-            m_statusLabel = statusLabel;
-            m_downloadProgressBar = downloadProgressBar;
-            m_outputTextBox = outputTextBox;
-            m_errorTextBox = errorTextBox;
-        }
-
-        @Override
-        protected void handlePackageDownloadProgress(final String currentPackage, final double progress) {
-            performActionOnWidgetInUiThread(m_statusLabel, () -> {
-                m_statusLabel.setText("Status: Downloading package '" + currentPackage + "'...");
-                return null;
-            }, true);
-            performActionOnWidgetInUiThread(m_downloadProgressBar, () -> {
-                m_downloadProgressBar.setSelection((int)(progress * 100));
-                return null;
-            }, true);
-        }
-
-        @Override
-        protected void handleNonProgressOutputLine(final String line) {
-            performActionOnWidgetInUiThread(m_outputTextBox, () -> {
-                m_outputTextBox.setText(m_outputTextBox.getText() + line + "\n");
-                return null;
-            }, true);
-            performActionOnWidgetInUiThread(m_statusLabel, () -> {
-                m_statusLabel.setText("Status: Creating Conda environment...");
-                return null;
-            }, true);
-        }
-
-        @Override
-        protected void handleErrorLine(final String line) {
-            performActionOnWidgetInUiThread(m_errorTextBox, () -> {
-                m_errorTextBox.setText(m_errorTextBox.getText() + line + "\n");
-                return null;
-            }, true);
-            performActionOnWidgetInUiThread(m_statusLabel, () -> {
-                m_statusLabel.setText("Status: An error occurred. See below.");
-                return null;
-            }, true);
+    @Override
+    public void open() {
+        m_shell.open();
+        final Display display = getParent().getDisplay();
+        while (!m_shell.isDisposed()) {
+            if (!display.readAndDispatch()) {
+                display.sleep();
+            }
         }
     }
 }

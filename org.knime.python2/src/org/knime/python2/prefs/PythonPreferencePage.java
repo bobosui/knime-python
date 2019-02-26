@@ -47,6 +47,8 @@
  */
 package org.knime.python2.prefs;
 
+import static org.knime.python2.prefs.PythonPreferenceUtils.performActionOnWidgetInUiThread;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -55,7 +57,6 @@ import java.util.List;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.SWTException;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -69,6 +70,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.PartInitException;
@@ -76,6 +78,7 @@ import org.eclipse.ui.PlatformUI;
 import org.knime.core.node.NodeLogger;
 import org.knime.python2.PythonKernelTester.PythonKernelTestResult;
 import org.knime.python2.PythonVersion;
+import org.knime.python2.config.CondaEnvironmentCreationStatus;
 import org.knime.python2.config.CondaEnvironmentsConfig;
 import org.knime.python2.config.ManualEnvironmentsConfig;
 import org.knime.python2.config.PythonConfig;
@@ -103,8 +106,6 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
     private Composite m_container;
 
     private List<PythonConfig> m_configs;
-
-    private Composite m_environmentConfigurationPanel;
 
     private StackLayout m_environmentConfigurationLayout;
 
@@ -151,24 +152,33 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
         final Label separator = new Label(environmentConfigurationGroup, SWT.SEPARATOR | SWT.HORIZONTAL);
         separator.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-        m_environmentConfigurationPanel = new Composite(environmentConfigurationGroup, SWT.NONE);
+        final Composite environmentConfigurationPanel = new Composite(environmentConfigurationGroup, SWT.NONE);
         m_environmentConfigurationLayout = new StackLayout();
-        m_environmentConfigurationPanel.setLayout(m_environmentConfigurationLayout);
-        m_environmentConfigurationPanel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        environmentConfigurationPanel.setLayout(m_environmentConfigurationLayout);
+        environmentConfigurationPanel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-        // Conda environment configuration:
+        // Conda environment configuration, including environment creation dialogs:
 
         final CondaEnvironmentsConfig condaEnvironmentConfig = new CondaEnvironmentsConfig();
         m_configs.add(condaEnvironmentConfig);
-        m_condaEnvironmentPanel =
-            new CondaEnvironmentPreferencePanel(condaEnvironmentConfig, m_environmentConfigurationPanel);
+
+        final Shell shell = getShell();
+        final CondaEnvironmentCreationStatus python2EnvironmentCreationStatus = new CondaEnvironmentCreationStatus();
+        final CondaEnvironmentCreationPreferenceDialog python2EnvironmentCreationDialog =
+            new CondaEnvironmentCreationPreferenceDialog(python2EnvironmentCreationStatus, shell);
+        final CondaEnvironmentCreationStatus python3EnvironmentCreationStatus = new CondaEnvironmentCreationStatus();
+        final CondaEnvironmentCreationPreferenceDialog python3EnvironmentCreationDialog =
+            new CondaEnvironmentCreationPreferenceDialog(python3EnvironmentCreationStatus, shell);
+
+        m_condaEnvironmentPanel = new CondaEnvironmentPreferencePanel(condaEnvironmentConfig,
+            python2EnvironmentCreationDialog, python3EnvironmentCreationDialog, environmentConfigurationPanel);
 
         // Manual environment configuration:
 
         final ManualEnvironmentsConfig manualEnvironmentConfig = new ManualEnvironmentsConfig();
         m_configs.add(manualEnvironmentConfig);
         m_manualEnvironmentPanel =
-            new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, m_environmentConfigurationPanel);
+            new ManualEnvironmentPreferencePanel(manualEnvironmentConfig, environmentConfigurationPanel);
 
         // Serializer selection:
 
@@ -188,11 +198,11 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
 
         // Hooks:
 
-        m_configObserver = new PythonConfigsObserver(pythonVersionConfig, environmentTypeConfig, condaEnvironmentConfig,
-            manualEnvironmentConfig, serializerConfig);
-
         environmentTypeConfig.getEnvironmentType().addChangeListener(
             e -> displayPanelForEnvironmentType(environmentTypeConfig.getEnvironmentType().getStringValue()));
+
+        m_configObserver = new PythonConfigsObserver(pythonVersionConfig, environmentTypeConfig, condaEnvironmentConfig,
+            manualEnvironmentConfig, serializerConfig);
 
         // Displaying installation test results may require resizing the scroll view.
         m_configObserver.addConfigsTestStatusListener(new PythonConfigsTestStatusListener() {
@@ -278,16 +288,11 @@ public final class PythonPreferencePage extends PreferencePage implements IWorkb
     }
 
     private void updateDisplayMinSize() {
-        try {
-            m_parentDisplay.syncExec(() -> {
-                if (!getControl().isDisposed()) {
-                    m_container.layout();
-                    m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-                }
-            });
-        } catch (final SWTException ex) {
-            // Display or control have been disposed - ignore.
-        }
+        performActionOnWidgetInUiThread(getControl(), () -> {
+            m_container.layout(true, true);
+            m_containerScrolledView.setMinSize(m_container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+            return null;
+        }, false);
     }
 
     @Override

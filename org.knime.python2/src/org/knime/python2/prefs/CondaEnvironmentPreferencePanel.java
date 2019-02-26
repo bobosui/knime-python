@@ -63,10 +63,13 @@ import org.knime.python2.config.CondaEnvironmentsConfig;
  * @author Marcel Wiedenmann, KNIME GmbH, Konstanz, Germany
  * @author Christian Dietz, KNIME GmbH, Konstanz, Germany
  */
-final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPanel<Composite> {
+final class CondaEnvironmentPreferencePanel
+    extends AbstractCondaEnvironmentPanel<CondaEnvironmentCreationPreferenceDialog, Composite> {
 
-    public CondaEnvironmentPreferencePanel(final CondaEnvironmentsConfig config, final Composite parent) {
-        super(config, parent);
+    public CondaEnvironmentPreferencePanel(final CondaEnvironmentsConfig config,
+        final CondaEnvironmentCreationPreferenceDialog python2EnvironmentCreationDialog,
+        final CondaEnvironmentCreationPreferenceDialog python3EnvironmentCreationDialog, final Composite parent) {
+        super(config, python2EnvironmentCreationDialog, python3EnvironmentCreationDialog, parent);
     }
 
     @Override
@@ -90,22 +93,25 @@ final class CondaEnvironmentPreferencePanel extends AbstractCondaEnvironmentPane
     }
 
     @Override
-    protected void createPython2EnvironmentWidget(final CondaEnvironmentConfig python2Config, final Composite panel) {
-        createPythonEnvironmentWidget(PythonVersion.PYTHON2, python2Config, panel);
+    protected void createPython2EnvironmentWidget(final CondaEnvironmentConfig python2Config,
+        final CondaEnvironmentCreationPreferenceDialog python2EnvironmentCreationDialog, final Composite panel) {
+        createPythonEnvironmentWidget(PythonVersion.PYTHON2, python2Config, python2EnvironmentCreationDialog, panel);
     }
 
     @Override
-    protected void createPython3EnvironmentWidget(final CondaEnvironmentConfig python3Config, final Composite panel) {
-        createPythonEnvironmentWidget(PythonVersion.PYTHON3, python3Config, panel);
+    protected void createPython3EnvironmentWidget(final CondaEnvironmentConfig python3Config,
+        final CondaEnvironmentCreationPreferenceDialog python3EnvironmentCreationDialog, final Composite panel) {
+        createPythonEnvironmentWidget(PythonVersion.PYTHON3, python3Config, python3EnvironmentCreationDialog, panel);
     }
 
     private static void createPythonEnvironmentWidget(final PythonVersion pythonVersion,
-        final CondaEnvironmentConfig pythonConfig, final Composite panel) {
+        final CondaEnvironmentConfig pythonConfig,
+        final CondaEnvironmentCreationPreferenceDialog environmentCreationDialog, final Composite panel) {
         final String pythonName = pythonVersion.getName();
         final CondaEnvironmentSelectionBox environmentSelection = new CondaEnvironmentSelectionBox(
             pythonConfig.getEnvironmentName(), pythonConfig.getAvailableEnvironmentNames(), pythonName,
             "Name of the " + pythonName + " Conda environment", pythonConfig.getPythonInstallationInfo(),
-            pythonConfig.getPythonInstallationError(), panel);
+            pythonConfig.getPythonInstallationError(), environmentCreationDialog, panel);
         final GridData gridData = new GridData();
         gridData.grabExcessHorizontalSpace = true;
         gridData.horizontalAlignment = SWT.FILL;
