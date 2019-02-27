@@ -361,23 +361,28 @@ public final class Conda {
     private void callCondaAndMonitorExecution(final CondaExecutionMonitor monitor, final String... arguments)
         throws IOException, PythonCanceledExecutionException {
         final Process conda = startCondaProcess(arguments);
-        final Thread outputListener =
-            new Thread(createCondaStreamReaderRunnable(conda.getInputStream(), monitor, monitor::handleOutputLine));
-        final Thread errorListener =
-            new Thread(createCondaStreamReaderRunnable(conda.getErrorStream(), monitor, line -> {
-                NodeLogger.getLogger(Conda.class).debug(line);
-                monitor.handleErrorLine(line);
-            }));
-        outputListener.start();
-        errorListener.start();
-
-        // TODO: Make cancelable via monitor.
-        final int condaExitCode = awaitTermination(conda, monitor);
-        // Should not be necessary, but let's play safe here.
-        outputListener.interrupt();
-        errorListener.interrupt();
-        if (condaExitCode != 0) {
-            throw new IOException("Conda process terminated with error code " + condaExitCode + ".");
+        Thread outputListener = null;
+        Thread errorListener = null;
+        try {
+            outputListener =
+                new Thread(createCondaStreamReaderRunnable(conda.getInputStream(), monitor, monitor::handleOutputLine));
+            errorListener =
+                new Thread(createCondaStreamReaderRunnable(conda.getErrorStream(), monitor, monitor::handleErrorLine));
+            outputListener.start();
+            errorListener.start();
+            final int condaExitCode = awaitTermination(conda, monitor);
+            if (condaExitCode != 0) {
+                throw new IOException("Conda process terminated with error code " + condaExitCode + ".");
+            }
+        } finally {
+            // Should not be necessary, but let's play safe here.
+            conda.destroy();
+            if (outputListener != null) {
+                outputListener.interrupt();
+            }
+            if (errorListener != null) {
+                errorListener.interrupt();
+            }
         }
     }
 
@@ -389,8 +394,12 @@ public final class Conda {
             try {
                 while (!monitor.isCanceled() && !Thread.interrupted() && (line = reader.readLine()) != null) {
                     line = line.trim();
-                    if (line != "") {
-                        lineProcessor.accept(line);
+                    if (!line.equals("")) {
+                        try {
+                            lineProcessor.accept(line);
+                        } catch (final Exception ex) {
+                            // Ignore
+                        }
                     }
                 }
             } catch (final IOException ex) {
@@ -412,7 +421,7 @@ public final class Conda {
             IOUtils.copy(conda.getErrorStream(), errorWriter, "UTF-8");
             String errorOutput = errorWriter.toString();
 
-            final int condaExitCode = awaitTermination(conda, null);
+            int condaExitCode = awaitTermination(conda, null);
             if (condaExitCode != 0) {
                 String errorMessage;
                 if (!errorOutput.isEmpty() && !isWarning(errorOutput)) {
@@ -429,6 +438,12 @@ public final class Conda {
         } catch (IOException ex) {
             NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
             throw ex;
+        } catch (PythonCanceledExecutionException ex) {
+            NodeLogger.getLogger(Conda.class).debug(ex.getMessage(), ex);
+            throw new IOException("Execution was interrupted.", ex);
+        } finally {
+            // Should not be necessary, but let's play safe here.
+            conda.destroy();
         }
     }
 
@@ -460,8 +475,12 @@ public final class Conda {
                 : conda.waitFor();
         } catch (final PythonExecutionException ex) {
             throw new IOException(ex.getMessage(), ex);
-        } catch (InterruptedException ex) {
+        } catch (final PythonCanceledExecutionException ex) {
+            conda.destroyForcibly();
+            throw ex;
+        } catch (final InterruptedException ex) {
             Thread.currentThread().interrupt();
+            conda.destroyForcibly();
             throw new PythonCanceledExecutionException();
         }
     }
@@ -545,9 +564,9 @@ public final class Conda {
         protected final void handleOutputLine(final String line) {
             try (final JsonReader reader = Json.createReader(new StringReader(line))) {
                 final JsonObject jsonOutput = reader.readObject();
-                final String currentPackage = jsonOutput.getString("fetch");
-                final double maxValue = Double.parseDouble(jsonOutput.getString("maxval"));
-                final double progress = Double.parseDouble(jsonOutput.getString("progress"));
+                final String currentPackage = jsonOutput.getString("fetch").split(" ")[0];
+                final double maxValue = jsonOutput.getJsonNumber("maxval").doubleValue();
+                final double progress = jsonOutput.getJsonNumber("progress").doubleValue();
                 handlePackageDownloadProgress(currentPackage, progress / maxValue);
             } catch (final Exception ex) {
                 handleNonProgressOutputLine(line);

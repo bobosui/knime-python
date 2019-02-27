@@ -346,9 +346,9 @@ public final class PythonConfigsObserver {
             .getRequiredExternalModules();
         infoMessage.setStringValue("Testing " + pythonVersion.getName() + " environment...");
         errorMessage.setStringValue("");
-        onEnvironmentInstallationTestStarting(environmentType, pythonVersion);
-        final PythonCommand pythonCommand = environmentConfig.getPythonCommand();
         new Thread(() -> {
+            onEnvironmentInstallationTestStarting(environmentType, pythonVersion);
+            final PythonCommand pythonCommand = environmentConfig.getPythonCommand();
             final PythonKernelTestResult testResult = isPython3 //
                 ? PythonKernelTester.testPython3Installation(pythonCommand, requiredSerializerModules, true) //
                 : PythonKernelTester.testPython2Installation(pythonCommand, requiredSerializerModules, true);
@@ -381,17 +381,38 @@ public final class PythonConfigsObserver {
             }
 
             @Override
-            public void condaEnvironmentCreationFinished(final String environmentName) {
-                // TODO: refresh available environmetns, select new environment
-            }
-
-            @Override
-            public void condaEnvironmentCreationFailed(final String errorMessage) {
-                // no-op
+            public void condaEnvironmentCreationFinished(final String createdEnvironmentName) {
+                final Conda conda;
+                try {
+                    conda = testCondaExecutable();
+                } catch (final Exception ex) {
+                    return;
+                }
+                final List<String> availableEnvironments;
+                try {
+                    availableEnvironments = getAvailableCondaEnvironments(conda);
+                } catch (final Exception ex) {
+                    return;
+                }
+                try {
+                    setAvailableCondaEnvironments(isPython3, availableEnvironments);
+                    final CondaEnvironmentConfig environmentConfig = isPython3 //
+                        ? m_condaEnvironmentsConfig.getPython3Config() //
+                        : m_condaEnvironmentsConfig.getPython2Config();
+                    environmentConfig.getEnvironmentName().setStringValue(createdEnvironmentName);
+                    testPythonEnvironment(true, isPython3);
+                } catch (Exception ex) {
+                    // Ignore, we still want to configure and test the second environment.
+                }
             }
 
             @Override
             public void condaEnvironmentCreationCanceled() {
+                // no-op
+            }
+
+            @Override
+            public void condaEnvironmentCreationFailed(final String errorMessage) {
                 // no-op
             }
         });
@@ -448,7 +469,7 @@ public final class PythonConfigsObserver {
     public static interface PythonConfigsTestStatusListener {
 
         /**
-         * Called synchronously.
+         * Called asynchronously, that is, possibly not in a UI thread.
          */
         void condaInstallationTestStarting();
 
@@ -461,7 +482,7 @@ public final class PythonConfigsObserver {
         void condaInstallationTestFinished(String errorMessage);
 
         /**
-         * Called asynchronously.
+         * Called asynchronously, that is, possibly not in a UI thread.
          *
          * @param environmentType The environment type of the environment whose installation test is about to start.
          * @param pythonVersion The Python version of the environment.

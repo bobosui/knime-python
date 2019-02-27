@@ -66,9 +66,7 @@ public final class CondaEnvironmentCreationStatus {
 
     private CopyOnWriteArrayList<CondaEnvironmentCreationStatusListener> m_listeners = new CopyOnWriteArrayList<>();
 
-    // Not meant for saving/loading. We just want observable values here to communicate with the view:
-
-    private static final String DUMMY_CFG_KEY = "dummy";
+    private static final String IN_PROGRESS_MESSAGE = "Creating Conda environment...";
 
     private static final String DEFAULT_STRING_VALUE = "";
 
@@ -77,6 +75,10 @@ public final class CondaEnvironmentCreationStatus {
     private final PythonVersion m_pythonVersion;
 
     private final SettingsModelString m_condaDirectoryPath;
+
+    // Not meant for saving/loading. We just want observable values here to communicate with the view:
+
+    private static final String DUMMY_CFG_KEY = "dummy";
 
     private final SettingsModelString m_statusMessage = new SettingsModelString(DUMMY_CFG_KEY, DEFAULT_STRING_VALUE);
 
@@ -94,68 +96,88 @@ public final class CondaEnvironmentCreationStatus {
         m_condaDirectoryPath = condaDirectoryPath;
     }
 
+    /**
+     * @return The status message of the current environment creation process.
+     */
     public SettingsModelString getStatusMessage() {
         return m_statusMessage;
     }
 
+    /**
+     * @return The package download progress of the current environment creation process.
+     */
     public SettingsModelInteger getProgress() {
         return m_progress;
     }
 
+    /**
+     * @return The output log of th current environment creation process.
+     */
     public SettingsModelString getOutputLog() {
         return m_outputLog;
     }
 
+    /**
+     * @return The error log of the current environment creation process.
+     */
     public SettingsModelString getErrorLog() {
         return m_errorLog;
     }
 
+    public synchronized void startEnvironmentGeneration() {
+        if (m_monitor != null) {
+            throw new IllegalStateException("Environment generation was tried to be started although one is already in "
+                + "progress. This is an implementation error.");
+        }
+        new Thread(() -> {
+            try {
+                onEnvironmentCreationStarting();
+                final Conda conda = new Conda(m_condaDirectoryPath.getStringValue());
+                m_monitor = new StateUpdatingCondaEnvironmentCreationMonitor();
+                final String createdEnvironmentName;
+                if (m_pythonVersion.equals(PythonVersion.PYTHON2)) {
+                    createdEnvironmentName = conda.createDefaultPython2Environment(m_monitor);
+                } else if (m_pythonVersion.equals(PythonVersion.PYTHON3)) {
+                    createdEnvironmentName = conda.createDefaultPython3Environment(m_monitor);
+                } else {
+                    throw new IllegalStateException("Python version '" + m_pythonVersion
+                        + "' is neither Python 2 nor Python " + "3. This is an implementation error.");
+                }
+                onEnvironmentCreationFinished(createdEnvironmentName);
+            } catch (final PythonCanceledExecutionException ex) {
+                onEnvironmentCreationCanceled();
+            } catch (final Exception ex) {
+                NodeLogger.getLogger(CondaEnvironmentCreationStatus.class).debug(ex, ex);
+                onEnvironmentCreationFailed(ex.getMessage());
+            } finally {
+                resetStatus();
+                m_monitor = null;
+            }
+        }).start();
+    }
+
+    public synchronized void cancelEnvironmentGeneration() {
+        if (m_monitor != null) {
+            m_monitor.cancel();
+        }
+    }
+
+    /**
+     * @param listener A listener which will be notified about changes in the status of the any environment creation
+     *            process started by this instance.
+     */
     public void addEnvironmentCreationStatusListener(final CondaEnvironmentCreationStatusListener listener) {
         if (!m_listeners.contains(listener)) {
             m_listeners.add(listener);
         }
     }
 
+    /**
+     * @param listener The listener to remove.
+     * @return {@code true} if the listener was present before removal.
+     */
     public boolean removeEnvironmentCreationStatusListener(final CondaEnvironmentCreationStatusListener listener) {
         return m_listeners.remove(listener);
-    }
-
-    // TODO: Figure out threading, access, and synchronization here. Also in Conda.java.
-
-    public void startEnvironmentGeneration() {
-        if (m_monitor != null) {
-            throw new IllegalStateException("Environment generation was tried to be started although one is already in "
-                + "progress. This is an implementation error.");
-        }
-        onEnvironmentCreationStarting();
-        try {
-            final Conda conda = new Conda(m_condaDirectoryPath.getStringValue());
-            m_monitor = new StateUpdatingCondaEnvironmentCreationMonitor();
-            final String createdEnvironmentName;
-            if (m_pythonVersion.equals(PythonVersion.PYTHON2)) {
-                createdEnvironmentName = conda.createDefaultPython2Environment(m_monitor);
-            } else if (m_pythonVersion.equals(PythonVersion.PYTHON3)) {
-                createdEnvironmentName = conda.createDefaultPython3Environment(m_monitor);
-            } else {
-                throw new IllegalStateException("Python version '" + m_pythonVersion
-                    + "' is neither Python 2 nor Python " + "3. This is an implementation error.");
-            }
-            onEnvironmentCreationFinished(createdEnvironmentName);
-        } catch (final PythonCanceledExecutionException ex) {
-            resetStatus();
-            onEnvironmentCreationCanceled();
-        } catch (final Exception ex) {
-            NodeLogger.getLogger(CondaEnvironmentCreationStatus.class).debug(ex, ex);
-            onEnvironmentCreationFailed(ex.getMessage());
-        }
-    }
-
-    public void cancelEnvironmentGeneration() {
-        if (m_monitor == null) {
-            throw new IllegalStateException("Environment generation was tried to be canceled although none was "
-                + "started. This is an implementation error.");
-        }
-        m_monitor.cancel();
     }
 
     private void resetStatus() {
@@ -166,37 +188,62 @@ public final class CondaEnvironmentCreationStatus {
     }
 
     private void onEnvironmentCreationStarting() {
+        m_statusMessage.setStringValue(IN_PROGRESS_MESSAGE);
         for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
             listener.condaEnvironmentCreationStarting();
         }
     }
 
-    private void onEnvironmentCreationFinished(final String environmentName) {
+    private void onEnvironmentCreationFinished(final String createdEnvironmentName) {
+        m_statusMessage.setStringValue(
+            "Environment creation finished.\nNew environment's name: '" + createdEnvironmentName + "'.");
         for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
-            listener.condaEnvironmentCreationFinished(environmentName);
+            listener.condaEnvironmentCreationFinished(createdEnvironmentName);
         }
     }
 
     private void onEnvironmentCreationCanceled() {
+        m_statusMessage.setStringValue("Environment creation was canceled.");
         for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
             listener.condaEnvironmentCreationCanceled();
         }
     }
 
     private void onEnvironmentCreationFailed(final String errorMessage) {
+        m_statusMessage.setStringValue("Environment creation failed: " + errorMessage);
         for (final CondaEnvironmentCreationStatusListener listener : m_listeners) {
             listener.condaEnvironmentCreationFailed(errorMessage);
         }
     }
 
+    /**
+     * Listener which will be notified about changes in the status of environment creation initiated by the enclosing
+     * class.
+     */
     public interface CondaEnvironmentCreationStatusListener {
 
+        /**
+         * Called asynchronously, that is, possibly not in a UI thread.
+         */
         void condaEnvironmentCreationStarting();
 
-        void condaEnvironmentCreationFinished(String environmentName);
+        /**
+         * Called asynchronously, that is, possibly not in a UI thread.
+         *
+         * @param createdEnvironmentName The name of the created environment.
+         */
+        void condaEnvironmentCreationFinished(String createdEnvironmentName);
 
+        /**
+         * Called asynchronously, that is, possibly not in a UI thread.
+         */
         void condaEnvironmentCreationCanceled();
 
+        /**
+         * Called asynchronously, that is, possibly not in a UI thread.
+         *
+         * @param errorMessage The message of the error that made environment creation fail.
+         */
         void condaEnvironmentCreationFailed(String errorMessage);
     }
 
@@ -204,20 +251,23 @@ public final class CondaEnvironmentCreationStatus {
 
         @Override
         protected void handlePackageDownloadProgress(final String currentPackage, final double progress) {
-            m_statusMessage.setStringValue("Downloading package '" + currentPackage + "'...");
+            if (progress < 1.0 - 0.001) {
+                m_statusMessage.setStringValue("Downloading package '" + currentPackage + "'...");
+            } else {
+                m_statusMessage.setStringValue(IN_PROGRESS_MESSAGE);
+            }
             m_progress.setIntValue((int)(progress * 100));
         }
 
         @Override
         protected void handleNonProgressOutputLine(final String line) {
-            m_outputLog.setStringValue(m_outputLog.getStringValue() + "\n" + line);
-            m_statusMessage.setStringValue("Creating Conda environment...");
+            m_outputLog.setStringValue(m_outputLog.getStringValue() + line + "\n");
+            m_statusMessage.setStringValue(IN_PROGRESS_MESSAGE);
         }
 
         @Override
         protected void handleErrorLine(final String line) {
-            m_errorLog.setStringValue(m_errorLog.getStringValue() + "\n" + line);
-            m_statusMessage.setStringValue("An error occurred.");
+            m_errorLog.setStringValue(m_errorLog.getStringValue() + line + "\n");
         }
     }
 }

@@ -48,8 +48,9 @@
  */
 package org.knime.python2.prefs;
 
+import static org.knime.python2.prefs.PythonPreferenceUtils.performActionOnWidgetInUiThread;
+
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -76,12 +77,13 @@ final class InstallationStatusDisplayPanel extends Composite {
         final GridLayout gridLayout = new GridLayout();
         gridLayout.marginWidth = 0;
         gridLayout.marginHeight = 0;
+        gridLayout.verticalSpacing = 0;
         setLayout(gridLayout);
 
         // Info label:
         final Label info = new Label(this, SWT.NONE);
         setLabelText(info, infoMessageModel.getStringValue());
-        info.setLayoutData(new GridData());
+        info.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false));
 
         // Error label:
         final Label error = new Label(this, SWT.NONE);
@@ -89,7 +91,7 @@ final class InstallationStatusDisplayPanel extends Composite {
         error.setForeground(red);
         error.addDisposeListener(e -> red.dispose());
         setLabelText(error, errorMessageModel.getStringValue());
-        error.setLayoutData(new GridData());
+        error.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false));
 
         // Hooks:
         infoMessageModel.addChangeListener(e -> setLabelText(info, infoMessageModel.getStringValue()));
@@ -98,15 +100,10 @@ final class InstallationStatusDisplayPanel extends Composite {
 
     private void setLabelText(final Label label, final String text) {
         final String finalText = text != null ? text : "";
-        try {
-            label.getDisplay().syncExec(() -> {
-                if (!label.isDisposed()) {
-                    label.setText(finalText);
-                    layout();
-                }
-            });
-        } catch (final SWTException ex) {
-            // Display or control have been disposed - ignore.
-        }
+        performActionOnWidgetInUiThread(label, () -> {
+            label.setText(finalText);
+            getParent().layout(true, true);
+            return null;
+        }, false);
     }
 }
