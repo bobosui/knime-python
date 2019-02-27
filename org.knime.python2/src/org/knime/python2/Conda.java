@@ -61,6 +61,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import javax.json.Json;
@@ -72,7 +73,10 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.util.Version;
+import org.knime.python2.kernel.PythonCancelable;
 import org.knime.python2.kernel.PythonCanceledExecutionException;
+import org.knime.python2.kernel.PythonExecutionException;
+import org.knime.python2.util.PythonUtils;
 
 /**
  * Interface to an external Conda installation.
@@ -259,7 +263,8 @@ public final class Conda {
      * Creates a new Python 2 conda environment of a unique name that contains all packages required by the KNIME Python
      * integration.
      *
-     * @param monitor Receives progress of the creation process. Allows to cancel environment creation.
+     * @param monitor Receives progress of the creation process. Allows to cancel the environment creation from within
+     *            another thread.
      * @return The name of the created conda environment.
      * @throws IOException If an error occurs during execution of the underlying conda commands.
      * @throws PythonCanceledExecutionException If environment creation was canceled via the given monitor.
@@ -275,7 +280,8 @@ public final class Conda {
      * Creates a new Python 3 conda environment of a unique name that contains all packages required by the KNIME Python
      * integration.
      *
-     * @param monitor Receives progress of the creation process. Allows to cancel environment creation.
+     * @param monitor Receives progress of the creation process. Allows to cancel the environment creation from within
+     *            another thread.
      * @return The name of the created conda environment.
      * @throws IOException If an error occurs during execution of the underlying conda commands.
      * @throws PythonCanceledExecutionException If environment creation was canceled via the given monitor.
@@ -305,6 +311,8 @@ public final class Conda {
      * @param pathToFile The path to the environment description file.
      * @param pythonVersion The major version of the Python environment to create. Determines the generated name of the
      *            environment.
+     * @param monitor Receives progress of the creation process. Allows to cancel the environment creation from within
+     *            another thread.
      * @return The name of the created environment.
      * @throws IOException If an error occurs during execution of the underlying command.
      * @throws PythonCanceledExecutionException If environment creation was canceled via the given monitor.
@@ -364,7 +372,7 @@ public final class Conda {
         errorListener.start();
 
         // TODO: Make cancelable via monitor.
-        final int condaExitCode = awaitTermination(conda);
+        final int condaExitCode = awaitTermination(conda, monitor);
         // Should not be necessary, but let's play safe here.
         outputListener.interrupt();
         errorListener.interrupt();
@@ -404,7 +412,7 @@ public final class Conda {
             IOUtils.copy(conda.getErrorStream(), errorWriter, "UTF-8");
             String errorOutput = errorWriter.toString();
 
-            final int condaExitCode = awaitTermination(conda);
+            final int condaExitCode = awaitTermination(conda, null);
             if (condaExitCode != 0) {
                 String errorMessage;
                 if (!errorOutput.isEmpty() && !isWarning(errorOutput)) {
@@ -437,12 +445,24 @@ public final class Conda {
         }
     }
 
-    private static int awaitTermination(final Process conda) throws IOException {
+    /**
+     * @param monitor May be {@code null}.
+     * @throws PythonCanceledExecutionException If either {@code monitor} is not {@code null} and its
+     *             {@link CondaExecutionMonitor#cancel()} was called or if {@code monitor} is {@code null} and the
+     *             calling thread was interrupted.
+     */
+    private static int awaitTermination(final Process conda, final CondaExecutionMonitor monitor)
+        throws IOException, PythonCanceledExecutionException {
         try {
-            return conda.waitFor();
+            return monitor != null //
+                ? PythonUtils.Misc.executeCancelable(conda::waitFor, Executors.newSingleThreadExecutor(),
+                    new PythonCancelableFromCondaExecutionMonitor(monitor))
+                : conda.waitFor();
+        } catch (final PythonExecutionException ex) {
+            throw new IOException(ex.getMessage(), ex);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new IOException("An interrupt occurred while waiting for the conda process to terminate.");
+            throw new PythonCanceledExecutionException();
         }
     }
 
@@ -573,6 +593,22 @@ public final class Conda {
                 return true;
             } else {
                 return false;
+            }
+        }
+    }
+
+    private static class PythonCancelableFromCondaExecutionMonitor implements PythonCancelable {
+
+        private final CondaExecutionMonitor m_monitor;
+
+        private PythonCancelableFromCondaExecutionMonitor(final CondaExecutionMonitor monitor) {
+            m_monitor = monitor;
+        }
+
+        @Override
+        public void checkCanceled() throws PythonCanceledExecutionException {
+            if (m_monitor.isCanceled()) {
+                throw new PythonCanceledExecutionException();
             }
         }
     }
