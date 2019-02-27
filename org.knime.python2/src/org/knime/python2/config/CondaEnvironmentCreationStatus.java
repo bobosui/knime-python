@@ -131,6 +131,7 @@ public final class CondaEnvironmentCreationStatus {
         }
         new Thread(() -> {
             try {
+                resetStatus();
                 onEnvironmentCreationStarting();
                 final Conda conda = new Conda(m_condaDirectoryPath.getStringValue());
                 m_monitor = new StateUpdatingCondaEnvironmentCreationMonitor();
@@ -147,10 +148,9 @@ public final class CondaEnvironmentCreationStatus {
             } catch (final PythonCanceledExecutionException ex) {
                 onEnvironmentCreationCanceled();
             } catch (final Exception ex) {
-                NodeLogger.getLogger(CondaEnvironmentCreationStatus.class).debug(ex, ex);
+                NodeLogger.getLogger(CondaEnvironmentCreationStatus.class).error(ex.getMessage(), ex);
                 onEnvironmentCreationFailed(ex.getMessage());
             } finally {
-                resetStatus();
                 m_monitor = null;
             }
         }).start();

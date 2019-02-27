@@ -136,6 +136,7 @@ class CondaEnvironmentCreationPreferenceDialog implements CondaEnvironmentCreati
             final Label descriptionText = new Label(m_shell, SWT.WRAP);
             descriptionText.setText("Creating the Conda environment may take several minutes"
                 + "\nand requires an active internet connection.");
+            descriptionText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
             // Progress monitoring widgets:
 
@@ -149,7 +150,7 @@ class CondaEnvironmentCreationPreferenceDialog implements CondaEnvironmentCreati
                 statusMessage = "Please click '" + CREATE_BUTTON_TEXT + "' to start.";
             }
             m_statusLabel.setText(statusMessage);
-            GridData gridData = new GridData();
+            GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
             gridData.verticalIndent = 10;
             m_statusLabel.setLayoutData(gridData);
 
@@ -319,8 +320,22 @@ class CondaEnvironmentCreationPreferenceDialog implements CondaEnvironmentCreati
 
                 @Override
                 public void condaEnvironmentCreationFailed(final String errorMessage) {
-                    performActionOnWidgetInUiThread(m_cancelButton, () -> {
-                        m_cancelButton.setText("Close");
+                    performActionOnWidgetInUiThread(m_shell, () -> {
+                        if (!m_statusLabel.isDisposed()) {
+                            final Color red = new Color(m_statusLabel.getDisplay(), 255, 0, 0);
+                            m_statusLabel.setForeground(red);
+                            m_statusLabel.addDisposeListener(e -> red.dispose());
+                        }
+                        if (!m_indeterminateProgressBar.isDisposed()) {
+                            m_indeterminateProgressBar.setEnabled(false);
+                        }
+                        if (!m_determinateProgressBar.isDisposed()) {
+                            m_determinateProgressBar.setEnabled(false);
+                        }
+                        if (!m_cancelButton.isDisposed()) {
+                            m_cancelButton.setText("Close");
+                        }
+                        m_shell.layout(true, true);
                         return null;
                     }, true);
                 }
