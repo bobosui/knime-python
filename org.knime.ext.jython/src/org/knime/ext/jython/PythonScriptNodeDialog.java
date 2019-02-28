@@ -26,6 +26,9 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableCellEditor;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.node.*;
+//import org.fife.ui.rtextarea.*;
+import org.fife.ui.rsyntaxtextarea.*; // language style view
+import org.fife.ui.rtextarea.RTextScrollPane;
 
 /**
  * <code>NodeDialog</code> for the "JPython Script" Node.
@@ -35,7 +38,7 @@ import org.knime.core.node.*;
 public class PythonScriptNodeDialog extends NodeDialogPane
 {
 	private static NodeLogger logger = NodeLogger.getLogger(PythonScriptNodeDialog.class);
-	private JTextArea scriptTextArea = new JTextArea(10,40);
+	private RSyntaxTextArea  scriptTextArea = new RSyntaxTextArea(10,40);	
 	private JTable table;
 	private int counter = 1;
 	private JCheckBox m_appendColsCB;
@@ -51,7 +54,10 @@ public class PythonScriptNodeDialog extends NodeDialogPane
 		super();
 		
 		scriptTextArea.setAutoscrolls(true);
-	
+		scriptTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_PYTHON); //Python style display
+		scriptTextArea.setCodeFoldingEnabled(true);  // code folding support
+		RTextScrollPane sp = new RTextScrollPane(scriptTextArea);  // scroll and display line number
+		
 		// construct the output column selection panel
 		JPanel outputPanel = new JPanel();
 		outputPanel.setLayout(new BoxLayout(outputPanel, BoxLayout.Y_AXIS));
@@ -168,7 +174,7 @@ public class PythonScriptNodeDialog extends NodeDialogPane
 		
 		JPanel scriptMainPanel = new JPanel(new BorderLayout());
 		scriptMainPanel.add(new JLabel("Script: "), BorderLayout.NORTH);
-		scriptMainPanel.add(new JScrollPane(scriptTextArea), BorderLayout.CENTER);
+		scriptMainPanel.add(sp, BorderLayout.CENTER);
 		
 		scriptPanel.add(scriptButtonPanel, BorderLayout.PAGE_START);
 		scriptPanel.add(scriptMainPanel, BorderLayout.CENTER);
